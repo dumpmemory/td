@@ -6,17 +6,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-faster/errors"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/gotd/td/internal/tdsync"
-	"github.com/gotd/td/internal/testutil"
 	"github.com/gotd/td/session"
+	"github.com/gotd/td/tdsync"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/dcs"
 	"github.com/gotd/td/telegram/internal/e2etest"
+	"github.com/gotd/td/testutil"
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/transport"
 )
@@ -92,14 +93,20 @@ func TestExternalE2EUsersDialog(t *testing.T) {
 	g := tdsync.NewLogGroup(ctx, log.Named("group"))
 
 	g.Go("echobot", func(ctx context.Context) error {
-		return e2etest.NewEchoBot(suite, auth).Run(ctx)
+		if err := e2etest.NewEchoBot(suite, auth).Run(ctx); err != nil {
+			return errors.Wrap(err, "echo bot")
+		}
+		return nil
 	})
 
 	user, ok := <-auth
 	if ok {
 		g.Go("terentyev", func(ctx context.Context) error {
 			defer g.Cancel()
-			return e2etest.NewUser(suite, strings.Split(dialog, "\n"), user.Username).Run(ctx)
+			if err := e2etest.NewUser(suite, strings.Split(dialog, "\n"), user.Username).Run(ctx); err != nil {
+				return errors.Wrap(err, "user")
+			}
+			return nil
 		})
 	}
 

@@ -31,7 +31,7 @@ var (
 	_ = tdjson.Encoder{}
 )
 
-// DialogFilter represents TL type `dialogFilter#7438f7e8`.
+// DialogFilter represents TL type `dialogFilter#aa472651`.
 // Dialog filter AKA folder¹
 //
 // Links:
@@ -84,23 +84,29 @@ type DialogFilter struct {
 	// Links:
 	//  1) https://core.telegram.org/api/folders
 	ExcludeArchived bool
+	// TitleNoanimate field of DialogFilter.
+	TitleNoanimate bool
 	// Folder¹ ID
 	//
 	// Links:
 	//  1) https://core.telegram.org/api/folders
 	ID int
-	// Folder¹ name
+	// Folder¹ name (max 12 UTF-8 chars)
 	//
 	// Links:
 	//  1) https://core.telegram.org/api/folders
-	Title string
-	// Folder¹ emoticon
-	//
-	// Links:
-	//  1) https://core.telegram.org/api/folders
+	Title TextWithEntities
+	// Emoji to use as icon for the folder.
 	//
 	// Use SetEmoticon and GetEmoticon helpers.
 	Emoticon string
+	// A color ID for the folder tag associated to this folder, see here »¹ for more info.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/folders#folder-tags
+	//
+	// Use SetColor and GetColor helpers.
+	Color int
 	// Pinned chats, folders¹ can have unlimited pinned chats
 	//
 	// Links:
@@ -119,7 +125,7 @@ type DialogFilter struct {
 }
 
 // DialogFilterTypeID is TL type id of DialogFilter.
-const DialogFilterTypeID = 0x7438f7e8
+const DialogFilterTypeID = 0xaa472651
 
 // construct implements constructor of DialogFilterClass.
 func (d DialogFilter) construct() DialogFilterClass { return &d }
@@ -165,13 +171,19 @@ func (d *DialogFilter) Zero() bool {
 	if !(d.ExcludeArchived == false) {
 		return false
 	}
+	if !(d.TitleNoanimate == false) {
+		return false
+	}
 	if !(d.ID == 0) {
 		return false
 	}
-	if !(d.Title == "") {
+	if !(d.Title.Zero()) {
 		return false
 	}
 	if !(d.Emoticon == "") {
+		return false
+	}
+	if !(d.Color == 0) {
 		return false
 	}
 	if !(d.PinnedPeers == nil) {
@@ -206,9 +218,11 @@ func (d *DialogFilter) FillFrom(from interface {
 	GetExcludeMuted() (value bool)
 	GetExcludeRead() (value bool)
 	GetExcludeArchived() (value bool)
+	GetTitleNoanimate() (value bool)
 	GetID() (value int)
-	GetTitle() (value string)
+	GetTitle() (value TextWithEntities)
 	GetEmoticon() (value string, ok bool)
+	GetColor() (value int, ok bool)
 	GetPinnedPeers() (value []InputPeerClass)
 	GetIncludePeers() (value []InputPeerClass)
 	GetExcludePeers() (value []InputPeerClass)
@@ -221,10 +235,15 @@ func (d *DialogFilter) FillFrom(from interface {
 	d.ExcludeMuted = from.GetExcludeMuted()
 	d.ExcludeRead = from.GetExcludeRead()
 	d.ExcludeArchived = from.GetExcludeArchived()
+	d.TitleNoanimate = from.GetTitleNoanimate()
 	d.ID = from.GetID()
 	d.Title = from.GetTitle()
 	if val, ok := from.GetEmoticon(); ok {
 		d.Emoticon = val
+	}
+
+	if val, ok := from.GetColor(); ok {
+		d.Color = val
 	}
 
 	d.PinnedPeers = from.GetPinnedPeers()
@@ -296,6 +315,11 @@ func (d *DialogFilter) TypeInfo() tdp.Type {
 			Null:       !d.Flags.Has(13),
 		},
 		{
+			Name:       "TitleNoanimate",
+			SchemaName: "title_noanimate",
+			Null:       !d.Flags.Has(28),
+		},
+		{
 			Name:       "ID",
 			SchemaName: "id",
 		},
@@ -307,6 +331,11 @@ func (d *DialogFilter) TypeInfo() tdp.Type {
 			Name:       "Emoticon",
 			SchemaName: "emoticon",
 			Null:       !d.Flags.Has(25),
+		},
+		{
+			Name:       "Color",
+			SchemaName: "color",
+			Null:       !d.Flags.Has(27),
 		},
 		{
 			Name:       "PinnedPeers",
@@ -350,15 +379,21 @@ func (d *DialogFilter) SetFlags() {
 	if !(d.ExcludeArchived == false) {
 		d.Flags.Set(13)
 	}
+	if !(d.TitleNoanimate == false) {
+		d.Flags.Set(28)
+	}
 	if !(d.Emoticon == "") {
 		d.Flags.Set(25)
+	}
+	if !(d.Color == 0) {
+		d.Flags.Set(27)
 	}
 }
 
 // Encode implements bin.Encoder.
 func (d *DialogFilter) Encode(b *bin.Buffer) error {
 	if d == nil {
-		return fmt.Errorf("can't encode dialogFilter#7438f7e8 as nil")
+		return fmt.Errorf("can't encode dialogFilter#aa472651 as nil")
 	}
 	b.PutID(DialogFilterTypeID)
 	return d.EncodeBare(b)
@@ -367,42 +402,47 @@ func (d *DialogFilter) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (d *DialogFilter) EncodeBare(b *bin.Buffer) error {
 	if d == nil {
-		return fmt.Errorf("can't encode dialogFilter#7438f7e8 as nil")
+		return fmt.Errorf("can't encode dialogFilter#aa472651 as nil")
 	}
 	d.SetFlags()
 	if err := d.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field flags: %w", err)
+		return fmt.Errorf("unable to encode dialogFilter#aa472651: field flags: %w", err)
 	}
 	b.PutInt(d.ID)
-	b.PutString(d.Title)
+	if err := d.Title.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode dialogFilter#aa472651: field title: %w", err)
+	}
 	if d.Flags.Has(25) {
 		b.PutString(d.Emoticon)
+	}
+	if d.Flags.Has(27) {
+		b.PutInt(d.Color)
 	}
 	b.PutVectorHeader(len(d.PinnedPeers))
 	for idx, v := range d.PinnedPeers {
 		if v == nil {
-			return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field pinned_peers element with index %d is nil", idx)
+			return fmt.Errorf("unable to encode dialogFilter#aa472651: field pinned_peers element with index %d is nil", idx)
 		}
 		if err := v.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field pinned_peers element with index %d: %w", idx, err)
+			return fmt.Errorf("unable to encode dialogFilter#aa472651: field pinned_peers element with index %d: %w", idx, err)
 		}
 	}
 	b.PutVectorHeader(len(d.IncludePeers))
 	for idx, v := range d.IncludePeers {
 		if v == nil {
-			return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field include_peers element with index %d is nil", idx)
+			return fmt.Errorf("unable to encode dialogFilter#aa472651: field include_peers element with index %d is nil", idx)
 		}
 		if err := v.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field include_peers element with index %d: %w", idx, err)
+			return fmt.Errorf("unable to encode dialogFilter#aa472651: field include_peers element with index %d: %w", idx, err)
 		}
 	}
 	b.PutVectorHeader(len(d.ExcludePeers))
 	for idx, v := range d.ExcludePeers {
 		if v == nil {
-			return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field exclude_peers element with index %d is nil", idx)
+			return fmt.Errorf("unable to encode dialogFilter#aa472651: field exclude_peers element with index %d is nil", idx)
 		}
 		if err := v.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode dialogFilter#7438f7e8: field exclude_peers element with index %d: %w", idx, err)
+			return fmt.Errorf("unable to encode dialogFilter#aa472651: field exclude_peers element with index %d: %w", idx, err)
 		}
 	}
 	return nil
@@ -411,10 +451,10 @@ func (d *DialogFilter) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (d *DialogFilter) Decode(b *bin.Buffer) error {
 	if d == nil {
-		return fmt.Errorf("can't decode dialogFilter#7438f7e8 to nil")
+		return fmt.Errorf("can't decode dialogFilter#aa472651 to nil")
 	}
 	if err := b.ConsumeID(DialogFilterTypeID); err != nil {
-		return fmt.Errorf("unable to decode dialogFilter#7438f7e8: %w", err)
+		return fmt.Errorf("unable to decode dialogFilter#aa472651: %w", err)
 	}
 	return d.DecodeBare(b)
 }
@@ -422,11 +462,11 @@ func (d *DialogFilter) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 	if d == nil {
-		return fmt.Errorf("can't decode dialogFilter#7438f7e8 to nil")
+		return fmt.Errorf("can't decode dialogFilter#aa472651 to nil")
 	}
 	{
 		if err := d.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field flags: %w", err)
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field flags: %w", err)
 		}
 	}
 	d.Contacts = d.Flags.Has(0)
@@ -437,31 +477,37 @@ func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 	d.ExcludeMuted = d.Flags.Has(11)
 	d.ExcludeRead = d.Flags.Has(12)
 	d.ExcludeArchived = d.Flags.Has(13)
+	d.TitleNoanimate = d.Flags.Has(28)
 	{
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field id: %w", err)
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field id: %w", err)
 		}
 		d.ID = value
 	}
 	{
-		value, err := b.String()
-		if err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field title: %w", err)
+		if err := d.Title.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field title: %w", err)
 		}
-		d.Title = value
 	}
 	if d.Flags.Has(25) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field emoticon: %w", err)
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field emoticon: %w", err)
 		}
 		d.Emoticon = value
+	}
+	if d.Flags.Has(27) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field color: %w", err)
+		}
+		d.Color = value
 	}
 	{
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field pinned_peers: %w", err)
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field pinned_peers: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -470,7 +516,7 @@ func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			value, err := DecodeInputPeer(b)
 			if err != nil {
-				return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field pinned_peers: %w", err)
+				return fmt.Errorf("unable to decode dialogFilter#aa472651: field pinned_peers: %w", err)
 			}
 			d.PinnedPeers = append(d.PinnedPeers, value)
 		}
@@ -478,7 +524,7 @@ func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 	{
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field include_peers: %w", err)
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field include_peers: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -487,7 +533,7 @@ func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			value, err := DecodeInputPeer(b)
 			if err != nil {
-				return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field include_peers: %w", err)
+				return fmt.Errorf("unable to decode dialogFilter#aa472651: field include_peers: %w", err)
 			}
 			d.IncludePeers = append(d.IncludePeers, value)
 		}
@@ -495,7 +541,7 @@ func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 	{
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field exclude_peers: %w", err)
+			return fmt.Errorf("unable to decode dialogFilter#aa472651: field exclude_peers: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -504,7 +550,7 @@ func (d *DialogFilter) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			value, err := DecodeInputPeer(b)
 			if err != nil {
-				return fmt.Errorf("unable to decode dialogFilter#7438f7e8: field exclude_peers: %w", err)
+				return fmt.Errorf("unable to decode dialogFilter#aa472651: field exclude_peers: %w", err)
 			}
 			d.ExcludePeers = append(d.ExcludePeers, value)
 		}
@@ -664,6 +710,25 @@ func (d *DialogFilter) GetExcludeArchived() (value bool) {
 	return d.Flags.Has(13)
 }
 
+// SetTitleNoanimate sets value of TitleNoanimate conditional field.
+func (d *DialogFilter) SetTitleNoanimate(value bool) {
+	if value {
+		d.Flags.Set(28)
+		d.TitleNoanimate = true
+	} else {
+		d.Flags.Unset(28)
+		d.TitleNoanimate = false
+	}
+}
+
+// GetTitleNoanimate returns value of TitleNoanimate conditional field.
+func (d *DialogFilter) GetTitleNoanimate() (value bool) {
+	if d == nil {
+		return
+	}
+	return d.Flags.Has(28)
+}
+
 // GetID returns value of ID field.
 func (d *DialogFilter) GetID() (value int) {
 	if d == nil {
@@ -673,7 +738,7 @@ func (d *DialogFilter) GetID() (value int) {
 }
 
 // GetTitle returns value of Title field.
-func (d *DialogFilter) GetTitle() (value string) {
+func (d *DialogFilter) GetTitle() (value TextWithEntities) {
 	if d == nil {
 		return
 	}
@@ -696,6 +761,24 @@ func (d *DialogFilter) GetEmoticon() (value string, ok bool) {
 		return value, false
 	}
 	return d.Emoticon, true
+}
+
+// SetColor sets value of Color conditional field.
+func (d *DialogFilter) SetColor(value int) {
+	d.Flags.Set(27)
+	d.Color = value
+}
+
+// GetColor returns value of Color conditional field and
+// boolean which is true if field was set.
+func (d *DialogFilter) GetColor() (value int, ok bool) {
+	if d == nil {
+		return
+	}
+	if !d.Flags.Has(27) {
+		return value, false
+	}
+	return d.Color, true
 }
 
 // GetPinnedPeers returns value of PinnedPeers field.
@@ -839,6 +922,468 @@ func (d *DialogFilterDefault) DecodeBare(b *bin.Buffer) error {
 	return nil
 }
 
+// DialogFilterChatlist represents TL type `dialogFilterChatlist#96537bd7`.
+// A folder imported using a chat folder deep link »¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/links#chat-folder-links
+//
+// See https://core.telegram.org/constructor/dialogFilterChatlist for reference.
+type DialogFilterChatlist struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// Whether the current user has created some chat folder deep links »¹ to share the
+	// folder as well.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/links#chat-folder-links
+	HasMyInvites bool
+	// TitleNoanimate field of DialogFilterChatlist.
+	TitleNoanimate bool
+	// ID of the folder
+	ID int
+	// Name of the folder (max 12 UTF-8 chars)
+	Title TextWithEntities
+	// Emoji to use as icon for the folder.
+	//
+	// Use SetEmoticon and GetEmoticon helpers.
+	Emoticon string
+	// A color ID for the folder tag associated to this folder, see here »¹ for more info.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/folders#folder-tags
+	//
+	// Use SetColor and GetColor helpers.
+	Color int
+	// Pinned chats, folders¹ can have unlimited pinned chats
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/folders
+	PinnedPeers []InputPeerClass
+	// Chats to include in the folder
+	IncludePeers []InputPeerClass
+}
+
+// DialogFilterChatlistTypeID is TL type id of DialogFilterChatlist.
+const DialogFilterChatlistTypeID = 0x96537bd7
+
+// construct implements constructor of DialogFilterClass.
+func (d DialogFilterChatlist) construct() DialogFilterClass { return &d }
+
+// Ensuring interfaces in compile-time for DialogFilterChatlist.
+var (
+	_ bin.Encoder     = &DialogFilterChatlist{}
+	_ bin.Decoder     = &DialogFilterChatlist{}
+	_ bin.BareEncoder = &DialogFilterChatlist{}
+	_ bin.BareDecoder = &DialogFilterChatlist{}
+
+	_ DialogFilterClass = &DialogFilterChatlist{}
+)
+
+func (d *DialogFilterChatlist) Zero() bool {
+	if d == nil {
+		return true
+	}
+	if !(d.Flags.Zero()) {
+		return false
+	}
+	if !(d.HasMyInvites == false) {
+		return false
+	}
+	if !(d.TitleNoanimate == false) {
+		return false
+	}
+	if !(d.ID == 0) {
+		return false
+	}
+	if !(d.Title.Zero()) {
+		return false
+	}
+	if !(d.Emoticon == "") {
+		return false
+	}
+	if !(d.Color == 0) {
+		return false
+	}
+	if !(d.PinnedPeers == nil) {
+		return false
+	}
+	if !(d.IncludePeers == nil) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (d *DialogFilterChatlist) String() string {
+	if d == nil {
+		return "DialogFilterChatlist(nil)"
+	}
+	type Alias DialogFilterChatlist
+	return fmt.Sprintf("DialogFilterChatlist%+v", Alias(*d))
+}
+
+// FillFrom fills DialogFilterChatlist from given interface.
+func (d *DialogFilterChatlist) FillFrom(from interface {
+	GetHasMyInvites() (value bool)
+	GetTitleNoanimate() (value bool)
+	GetID() (value int)
+	GetTitle() (value TextWithEntities)
+	GetEmoticon() (value string, ok bool)
+	GetColor() (value int, ok bool)
+	GetPinnedPeers() (value []InputPeerClass)
+	GetIncludePeers() (value []InputPeerClass)
+}) {
+	d.HasMyInvites = from.GetHasMyInvites()
+	d.TitleNoanimate = from.GetTitleNoanimate()
+	d.ID = from.GetID()
+	d.Title = from.GetTitle()
+	if val, ok := from.GetEmoticon(); ok {
+		d.Emoticon = val
+	}
+
+	if val, ok := from.GetColor(); ok {
+		d.Color = val
+	}
+
+	d.PinnedPeers = from.GetPinnedPeers()
+	d.IncludePeers = from.GetIncludePeers()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*DialogFilterChatlist) TypeID() uint32 {
+	return DialogFilterChatlistTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*DialogFilterChatlist) TypeName() string {
+	return "dialogFilterChatlist"
+}
+
+// TypeInfo returns info about TL type.
+func (d *DialogFilterChatlist) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "dialogFilterChatlist",
+		ID:   DialogFilterChatlistTypeID,
+	}
+	if d == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "HasMyInvites",
+			SchemaName: "has_my_invites",
+			Null:       !d.Flags.Has(26),
+		},
+		{
+			Name:       "TitleNoanimate",
+			SchemaName: "title_noanimate",
+			Null:       !d.Flags.Has(28),
+		},
+		{
+			Name:       "ID",
+			SchemaName: "id",
+		},
+		{
+			Name:       "Title",
+			SchemaName: "title",
+		},
+		{
+			Name:       "Emoticon",
+			SchemaName: "emoticon",
+			Null:       !d.Flags.Has(25),
+		},
+		{
+			Name:       "Color",
+			SchemaName: "color",
+			Null:       !d.Flags.Has(27),
+		},
+		{
+			Name:       "PinnedPeers",
+			SchemaName: "pinned_peers",
+		},
+		{
+			Name:       "IncludePeers",
+			SchemaName: "include_peers",
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (d *DialogFilterChatlist) SetFlags() {
+	if !(d.HasMyInvites == false) {
+		d.Flags.Set(26)
+	}
+	if !(d.TitleNoanimate == false) {
+		d.Flags.Set(28)
+	}
+	if !(d.Emoticon == "") {
+		d.Flags.Set(25)
+	}
+	if !(d.Color == 0) {
+		d.Flags.Set(27)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (d *DialogFilterChatlist) Encode(b *bin.Buffer) error {
+	if d == nil {
+		return fmt.Errorf("can't encode dialogFilterChatlist#96537bd7 as nil")
+	}
+	b.PutID(DialogFilterChatlistTypeID)
+	return d.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (d *DialogFilterChatlist) EncodeBare(b *bin.Buffer) error {
+	if d == nil {
+		return fmt.Errorf("can't encode dialogFilterChatlist#96537bd7 as nil")
+	}
+	d.SetFlags()
+	if err := d.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode dialogFilterChatlist#96537bd7: field flags: %w", err)
+	}
+	b.PutInt(d.ID)
+	if err := d.Title.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode dialogFilterChatlist#96537bd7: field title: %w", err)
+	}
+	if d.Flags.Has(25) {
+		b.PutString(d.Emoticon)
+	}
+	if d.Flags.Has(27) {
+		b.PutInt(d.Color)
+	}
+	b.PutVectorHeader(len(d.PinnedPeers))
+	for idx, v := range d.PinnedPeers {
+		if v == nil {
+			return fmt.Errorf("unable to encode dialogFilterChatlist#96537bd7: field pinned_peers element with index %d is nil", idx)
+		}
+		if err := v.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode dialogFilterChatlist#96537bd7: field pinned_peers element with index %d: %w", idx, err)
+		}
+	}
+	b.PutVectorHeader(len(d.IncludePeers))
+	for idx, v := range d.IncludePeers {
+		if v == nil {
+			return fmt.Errorf("unable to encode dialogFilterChatlist#96537bd7: field include_peers element with index %d is nil", idx)
+		}
+		if err := v.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode dialogFilterChatlist#96537bd7: field include_peers element with index %d: %w", idx, err)
+		}
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (d *DialogFilterChatlist) Decode(b *bin.Buffer) error {
+	if d == nil {
+		return fmt.Errorf("can't decode dialogFilterChatlist#96537bd7 to nil")
+	}
+	if err := b.ConsumeID(DialogFilterChatlistTypeID); err != nil {
+		return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: %w", err)
+	}
+	return d.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (d *DialogFilterChatlist) DecodeBare(b *bin.Buffer) error {
+	if d == nil {
+		return fmt.Errorf("can't decode dialogFilterChatlist#96537bd7 to nil")
+	}
+	{
+		if err := d.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field flags: %w", err)
+		}
+	}
+	d.HasMyInvites = d.Flags.Has(26)
+	d.TitleNoanimate = d.Flags.Has(28)
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field id: %w", err)
+		}
+		d.ID = value
+	}
+	{
+		if err := d.Title.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field title: %w", err)
+		}
+	}
+	if d.Flags.Has(25) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field emoticon: %w", err)
+		}
+		d.Emoticon = value
+	}
+	if d.Flags.Has(27) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field color: %w", err)
+		}
+		d.Color = value
+	}
+	{
+		headerLen, err := b.VectorHeader()
+		if err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field pinned_peers: %w", err)
+		}
+
+		if headerLen > 0 {
+			d.PinnedPeers = make([]InputPeerClass, 0, headerLen%bin.PreallocateLimit)
+		}
+		for idx := 0; idx < headerLen; idx++ {
+			value, err := DecodeInputPeer(b)
+			if err != nil {
+				return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field pinned_peers: %w", err)
+			}
+			d.PinnedPeers = append(d.PinnedPeers, value)
+		}
+	}
+	{
+		headerLen, err := b.VectorHeader()
+		if err != nil {
+			return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field include_peers: %w", err)
+		}
+
+		if headerLen > 0 {
+			d.IncludePeers = make([]InputPeerClass, 0, headerLen%bin.PreallocateLimit)
+		}
+		for idx := 0; idx < headerLen; idx++ {
+			value, err := DecodeInputPeer(b)
+			if err != nil {
+				return fmt.Errorf("unable to decode dialogFilterChatlist#96537bd7: field include_peers: %w", err)
+			}
+			d.IncludePeers = append(d.IncludePeers, value)
+		}
+	}
+	return nil
+}
+
+// SetHasMyInvites sets value of HasMyInvites conditional field.
+func (d *DialogFilterChatlist) SetHasMyInvites(value bool) {
+	if value {
+		d.Flags.Set(26)
+		d.HasMyInvites = true
+	} else {
+		d.Flags.Unset(26)
+		d.HasMyInvites = false
+	}
+}
+
+// GetHasMyInvites returns value of HasMyInvites conditional field.
+func (d *DialogFilterChatlist) GetHasMyInvites() (value bool) {
+	if d == nil {
+		return
+	}
+	return d.Flags.Has(26)
+}
+
+// SetTitleNoanimate sets value of TitleNoanimate conditional field.
+func (d *DialogFilterChatlist) SetTitleNoanimate(value bool) {
+	if value {
+		d.Flags.Set(28)
+		d.TitleNoanimate = true
+	} else {
+		d.Flags.Unset(28)
+		d.TitleNoanimate = false
+	}
+}
+
+// GetTitleNoanimate returns value of TitleNoanimate conditional field.
+func (d *DialogFilterChatlist) GetTitleNoanimate() (value bool) {
+	if d == nil {
+		return
+	}
+	return d.Flags.Has(28)
+}
+
+// GetID returns value of ID field.
+func (d *DialogFilterChatlist) GetID() (value int) {
+	if d == nil {
+		return
+	}
+	return d.ID
+}
+
+// GetTitle returns value of Title field.
+func (d *DialogFilterChatlist) GetTitle() (value TextWithEntities) {
+	if d == nil {
+		return
+	}
+	return d.Title
+}
+
+// SetEmoticon sets value of Emoticon conditional field.
+func (d *DialogFilterChatlist) SetEmoticon(value string) {
+	d.Flags.Set(25)
+	d.Emoticon = value
+}
+
+// GetEmoticon returns value of Emoticon conditional field and
+// boolean which is true if field was set.
+func (d *DialogFilterChatlist) GetEmoticon() (value string, ok bool) {
+	if d == nil {
+		return
+	}
+	if !d.Flags.Has(25) {
+		return value, false
+	}
+	return d.Emoticon, true
+}
+
+// SetColor sets value of Color conditional field.
+func (d *DialogFilterChatlist) SetColor(value int) {
+	d.Flags.Set(27)
+	d.Color = value
+}
+
+// GetColor returns value of Color conditional field and
+// boolean which is true if field was set.
+func (d *DialogFilterChatlist) GetColor() (value int, ok bool) {
+	if d == nil {
+		return
+	}
+	if !d.Flags.Has(27) {
+		return value, false
+	}
+	return d.Color, true
+}
+
+// GetPinnedPeers returns value of PinnedPeers field.
+func (d *DialogFilterChatlist) GetPinnedPeers() (value []InputPeerClass) {
+	if d == nil {
+		return
+	}
+	return d.PinnedPeers
+}
+
+// GetIncludePeers returns value of IncludePeers field.
+func (d *DialogFilterChatlist) GetIncludePeers() (value []InputPeerClass) {
+	if d == nil {
+		return
+	}
+	return d.IncludePeers
+}
+
+// MapPinnedPeers returns field PinnedPeers wrapped in InputPeerClassArray helper.
+func (d *DialogFilterChatlist) MapPinnedPeers() (value InputPeerClassArray) {
+	return InputPeerClassArray(d.PinnedPeers)
+}
+
+// MapIncludePeers returns field IncludePeers wrapped in InputPeerClassArray helper.
+func (d *DialogFilterChatlist) MapIncludePeers() (value InputPeerClassArray) {
+	return InputPeerClassArray(d.IncludePeers)
+}
+
 // DialogFilterClassName is schema name of DialogFilterClass.
 const DialogFilterClassName = "DialogFilter"
 
@@ -853,8 +1398,9 @@ const DialogFilterClassName = "DialogFilter"
 //	    panic(err)
 //	}
 //	switch v := g.(type) {
-//	case *tg.DialogFilter: // dialogFilter#7438f7e8
+//	case *tg.DialogFilter: // dialogFilter#aa472651
 //	case *tg.DialogFilterDefault: // dialogFilterDefault#363293ae
+//	case *tg.DialogFilterChatlist: // dialogFilterChatlist#96537bd7
 //	default: panic(v)
 //	}
 type DialogFilterClass interface {
@@ -876,6 +1422,14 @@ type DialogFilterClass interface {
 	Zero() bool
 }
 
+// AsInputChatlist tries to map DialogFilter to InputChatlistDialogFilter.
+func (d *DialogFilter) AsInputChatlist() *InputChatlistDialogFilter {
+	value := new(InputChatlistDialogFilter)
+	value.FilterID = d.GetID()
+
+	return value
+}
+
 // DecodeDialogFilter implements binary de-serialization for DialogFilterClass.
 func DecodeDialogFilter(buf *bin.Buffer) (DialogFilterClass, error) {
 	id, err := buf.PeekID()
@@ -884,7 +1438,7 @@ func DecodeDialogFilter(buf *bin.Buffer) (DialogFilterClass, error) {
 	}
 	switch id {
 	case DialogFilterTypeID:
-		// Decoding dialogFilter#7438f7e8.
+		// Decoding dialogFilter#aa472651.
 		v := DialogFilter{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode DialogFilterClass: %w", err)
@@ -893,6 +1447,13 @@ func DecodeDialogFilter(buf *bin.Buffer) (DialogFilterClass, error) {
 	case DialogFilterDefaultTypeID:
 		// Decoding dialogFilterDefault#363293ae.
 		v := DialogFilterDefault{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode DialogFilterClass: %w", err)
+		}
+		return &v, nil
+	case DialogFilterChatlistTypeID:
+		// Decoding dialogFilterChatlist#96537bd7.
+		v := DialogFilterChatlist{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode DialogFilterClass: %w", err)
 		}

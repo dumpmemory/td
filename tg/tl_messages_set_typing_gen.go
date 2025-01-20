@@ -47,7 +47,7 @@ type MessagesSetTypingRequest struct {
 	Flags bin.Fields
 	// Target user or group
 	Peer InputPeerClass
-	// Thread ID¹
+	// Topic ID¹
 	//
 	// Links:
 	//  1) https://core.telegram.org/api/threads
@@ -283,8 +283,10 @@ func (s *MessagesSetTypingRequest) GetAction() (value SendMessageActionClass) {
 //
 // Possible errors:
 //
+//	400 BUSINESS_PEER_INVALID: Messages can't be set to the specified peer through the current business connection.
+//	400 BUSINESS_PEER_USAGE_MISSING: You cannot send a message to a user through a business connection if the user hasn't recently contacted us.
 //	400 CHANNEL_INVALID: The provided channel is invalid.
-//	400 CHANNEL_PRIVATE: You haven't joined this channel/supergroup.
+//	406 CHANNEL_PRIVATE: You haven't joined this channel/supergroup.
 //	400 CHAT_ADMIN_REQUIRED: You must be an admin in this chat to do this.
 //	400 CHAT_ID_INVALID: The provided chat id is invalid.
 //	403 CHAT_WRITE_FORBIDDEN: You can't write in this chat.

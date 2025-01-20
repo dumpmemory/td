@@ -32,14 +32,21 @@ var (
 )
 
 // MessagesTogglePeerTranslationsRequest represents TL type `messages.togglePeerTranslations#e47cb579`.
+// Show or hide the real-time chat translation popup¹ for a certain chat
+//
+// Links:
+//  1. https://core.telegram.org/api/translation
 //
 // See https://core.telegram.org/method/messages.togglePeerTranslations for reference.
 type MessagesTogglePeerTranslationsRequest struct {
-	// Flags field of MessagesTogglePeerTranslationsRequest.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// Disabled field of MessagesTogglePeerTranslationsRequest.
+	// Whether to disable or enable the real-time chat translation popup
 	Disabled bool
-	// Peer field of MessagesTogglePeerTranslationsRequest.
+	// The peer
 	Peer InputPeerClass
 }
 
@@ -219,6 +226,14 @@ func (t *MessagesTogglePeerTranslationsRequest) GetPeer() (value InputPeerClass)
 }
 
 // MessagesTogglePeerTranslations invokes method messages.togglePeerTranslations#e47cb579 returning error if any.
+// Show or hide the real-time chat translation popup¹ for a certain chat
+//
+// Links:
+//  1. https://core.telegram.org/api/translation
+//
+// Possible errors:
+//
+//	400 PEER_ID_INVALID: The provided peer id is invalid.
 //
 // See https://core.telegram.org/method/messages.togglePeerTranslations for reference.
 func (c *Client) MessagesTogglePeerTranslations(ctx context.Context, request *MessagesTogglePeerTranslationsRequest) (bool, error) {

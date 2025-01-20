@@ -39,6 +39,9 @@ Classes:
 
 		target.Classes = append(target.Classes, c)
 	}
+	if target.Layer == 0 {
+		target.Layer = s.Layer
+	}
 }
 
 func main() {
@@ -65,7 +68,7 @@ func main() {
 	}
 	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode/100 != 2 {
-		panic(fmt.Sprintf("status code %d", res.StatusCode))
+		panic(fmt.Sprintf("%s %d", u.String(), res.StatusCode))
 	}
 
 	// Parsing in-place.

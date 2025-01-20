@@ -32,6 +32,10 @@ var (
 )
 
 // MessagesEmojiGroupsNotModified represents TL type `messages.emojiGroupsNotModified#6fb4ad87`.
+// The list of emoji categories¹ hasn't changed.
+//
+// Links:
+//  1. https://core.telegram.org/api/emoji-categories
 //
 // See https://core.telegram.org/constructor/messages.emojiGroupsNotModified for reference.
 type MessagesEmojiGroupsNotModified struct {
@@ -133,13 +137,23 @@ func (e *MessagesEmojiGroupsNotModified) DecodeBare(b *bin.Buffer) error {
 }
 
 // MessagesEmojiGroups represents TL type `messages.emojiGroups#881fb94b`.
+// Represents a list of emoji categories¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/emoji-categories
 //
 // See https://core.telegram.org/constructor/messages.emojiGroups for reference.
 type MessagesEmojiGroups struct {
-	// Hash field of MessagesEmojiGroups.
+	// Hash used for caching, for more info click here¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/offsets#hash-generation
 	Hash int
-	// Groups field of MessagesEmojiGroups.
-	Groups []EmojiGroup
+	// A list of emoji categories¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/emoji-categories
+	Groups []EmojiGroupClass
 }
 
 // MessagesEmojiGroupsTypeID is TL type id of MessagesEmojiGroups.
@@ -184,7 +198,7 @@ func (e *MessagesEmojiGroups) String() string {
 // FillFrom fills MessagesEmojiGroups from given interface.
 func (e *MessagesEmojiGroups) FillFrom(from interface {
 	GetHash() (value int)
-	GetGroups() (value []EmojiGroup)
+	GetGroups() (value []EmojiGroupClass)
 }) {
 	e.Hash = from.GetHash()
 	e.Groups = from.GetGroups()
@@ -242,6 +256,9 @@ func (e *MessagesEmojiGroups) EncodeBare(b *bin.Buffer) error {
 	b.PutInt(e.Hash)
 	b.PutVectorHeader(len(e.Groups))
 	for idx, v := range e.Groups {
+		if v == nil {
+			return fmt.Errorf("unable to encode messages.emojiGroups#881fb94b: field groups element with index %d is nil", idx)
+		}
 		if err := v.Encode(b); err != nil {
 			return fmt.Errorf("unable to encode messages.emojiGroups#881fb94b: field groups element with index %d: %w", idx, err)
 		}
@@ -279,11 +296,11 @@ func (e *MessagesEmojiGroups) DecodeBare(b *bin.Buffer) error {
 		}
 
 		if headerLen > 0 {
-			e.Groups = make([]EmojiGroup, 0, headerLen%bin.PreallocateLimit)
+			e.Groups = make([]EmojiGroupClass, 0, headerLen%bin.PreallocateLimit)
 		}
 		for idx := 0; idx < headerLen; idx++ {
-			var value EmojiGroup
-			if err := value.Decode(b); err != nil {
+			value, err := DecodeEmojiGroup(b)
+			if err != nil {
 				return fmt.Errorf("unable to decode messages.emojiGroups#881fb94b: field groups: %w", err)
 			}
 			e.Groups = append(e.Groups, value)
@@ -301,11 +318,16 @@ func (e *MessagesEmojiGroups) GetHash() (value int) {
 }
 
 // GetGroups returns value of Groups field.
-func (e *MessagesEmojiGroups) GetGroups() (value []EmojiGroup) {
+func (e *MessagesEmojiGroups) GetGroups() (value []EmojiGroupClass) {
 	if e == nil {
 		return
 	}
 	return e.Groups
+}
+
+// MapGroups returns field Groups wrapped in EmojiGroupClassArray helper.
+func (e *MessagesEmojiGroups) MapGroups() (value EmojiGroupClassArray) {
+	return EmojiGroupClassArray(e.Groups)
 }
 
 // MessagesEmojiGroupsClassName is schema name of MessagesEmojiGroupsClass.

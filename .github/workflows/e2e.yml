@@ -14,12 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19
+          go-version: '1.22.x'
+          cache: false
 
       # Note that we deliberately don’t restore GOCACHE.
       # That is, we must not cache e2e test results.
@@ -27,7 +28,7 @@ jobs:
         id: go-env
         run: echo "::set-output name=modcache::$(go env GOMODCACHE)"
       - name: Set up cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.go-env.outputs.modcache }}
           key: e2e-${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}-${{ hashFiles('**/go.mod') }}
@@ -43,3 +44,9 @@ jobs:
         env:
           GOTD_TEST_EXTERNAL: 1
           GOTD_MTPROXY_ADDR: "127.0.0.1:3128"
+          TEST_ACCOUNTS_BROKEN: 1 # use external test accounts
+          TEST_ACCOUNT_MANAGER_DISABLED: 0
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_JOB_ID: ${{ github.job }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}

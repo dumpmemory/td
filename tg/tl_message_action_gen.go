@@ -1907,7 +1907,7 @@ func (m *MessageActionGameScore) GetScore() (value int) {
 	return m.Score
 }
 
-// MessageActionPaymentSentMe represents TL type `messageActionPaymentSentMe#8f31b327`.
+// MessageActionPaymentSentMe represents TL type `messageActionPaymentSentMe#ffa00ccc`.
 // A user just sent a payment to me (a bot)
 //
 // See https://core.telegram.org/constructor/messageActionPaymentSentMe for reference.
@@ -1921,10 +1921,11 @@ type MessageActionPaymentSentMe struct {
 	RecurringInit bool
 	// Whether this payment is part of a recurring payment
 	RecurringUsed bool
-	// Three-letter ISO 4217 currency¹ code
+	// Three-letter ISO 4217 currency¹ code, or XTR for Telegram Stars².
 	//
 	// Links:
 	//  1) https://core.telegram.org/bots/payments#supported-currencies
+	//  2) https://core.telegram.org/api/stars
 	Currency string
 	// Price of the product in the smallest units of the currency (integer, not float/double)
 	// For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in
@@ -1946,10 +1947,17 @@ type MessageActionPaymentSentMe struct {
 	ShippingOptionID string
 	// Provider payment identifier
 	Charge PaymentCharge
+	// Expiration date of the Telegram Star subscription »¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stars#star-subscriptions
+	//
+	// Use SetSubscriptionUntilDate and GetSubscriptionUntilDate helpers.
+	SubscriptionUntilDate int
 }
 
 // MessageActionPaymentSentMeTypeID is TL type id of MessageActionPaymentSentMe.
-const MessageActionPaymentSentMeTypeID = 0x8f31b327
+const MessageActionPaymentSentMeTypeID = 0xffa00ccc
 
 // construct implements constructor of MessageActionClass.
 func (m MessageActionPaymentSentMe) construct() MessageActionClass { return &m }
@@ -1995,6 +2003,9 @@ func (m *MessageActionPaymentSentMe) Zero() bool {
 	if !(m.Charge.Zero()) {
 		return false
 	}
+	if !(m.SubscriptionUntilDate == 0) {
+		return false
+	}
 
 	return true
 }
@@ -2018,6 +2029,7 @@ func (m *MessageActionPaymentSentMe) FillFrom(from interface {
 	GetInfo() (value PaymentRequestedInfo, ok bool)
 	GetShippingOptionID() (value string, ok bool)
 	GetCharge() (value PaymentCharge)
+	GetSubscriptionUntilDate() (value int, ok bool)
 }) {
 	m.RecurringInit = from.GetRecurringInit()
 	m.RecurringUsed = from.GetRecurringUsed()
@@ -2033,6 +2045,10 @@ func (m *MessageActionPaymentSentMe) FillFrom(from interface {
 	}
 
 	m.Charge = from.GetCharge()
+	if val, ok := from.GetSubscriptionUntilDate(); ok {
+		m.SubscriptionUntilDate = val
+	}
+
 }
 
 // TypeID returns type id in TL schema.
@@ -2094,6 +2110,11 @@ func (m *MessageActionPaymentSentMe) TypeInfo() tdp.Type {
 			Name:       "Charge",
 			SchemaName: "charge",
 		},
+		{
+			Name:       "SubscriptionUntilDate",
+			SchemaName: "subscription_until_date",
+			Null:       !m.Flags.Has(4),
+		},
 	}
 	return typ
 }
@@ -2112,12 +2133,15 @@ func (m *MessageActionPaymentSentMe) SetFlags() {
 	if !(m.ShippingOptionID == "") {
 		m.Flags.Set(1)
 	}
+	if !(m.SubscriptionUntilDate == 0) {
+		m.Flags.Set(4)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (m *MessageActionPaymentSentMe) Encode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionPaymentSentMe#8f31b327 as nil")
+		return fmt.Errorf("can't encode messageActionPaymentSentMe#ffa00ccc as nil")
 	}
 	b.PutID(MessageActionPaymentSentMeTypeID)
 	return m.EncodeBare(b)
@@ -2126,25 +2150,28 @@ func (m *MessageActionPaymentSentMe) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (m *MessageActionPaymentSentMe) EncodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionPaymentSentMe#8f31b327 as nil")
+		return fmt.Errorf("can't encode messageActionPaymentSentMe#ffa00ccc as nil")
 	}
 	m.SetFlags()
 	if err := m.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messageActionPaymentSentMe#8f31b327: field flags: %w", err)
+		return fmt.Errorf("unable to encode messageActionPaymentSentMe#ffa00ccc: field flags: %w", err)
 	}
 	b.PutString(m.Currency)
 	b.PutLong(m.TotalAmount)
 	b.PutBytes(m.Payload)
 	if m.Flags.Has(0) {
 		if err := m.Info.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode messageActionPaymentSentMe#8f31b327: field info: %w", err)
+			return fmt.Errorf("unable to encode messageActionPaymentSentMe#ffa00ccc: field info: %w", err)
 		}
 	}
 	if m.Flags.Has(1) {
 		b.PutString(m.ShippingOptionID)
 	}
 	if err := m.Charge.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messageActionPaymentSentMe#8f31b327: field charge: %w", err)
+		return fmt.Errorf("unable to encode messageActionPaymentSentMe#ffa00ccc: field charge: %w", err)
+	}
+	if m.Flags.Has(4) {
+		b.PutInt(m.SubscriptionUntilDate)
 	}
 	return nil
 }
@@ -2152,10 +2179,10 @@ func (m *MessageActionPaymentSentMe) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (m *MessageActionPaymentSentMe) Decode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionPaymentSentMe#8f31b327 to nil")
+		return fmt.Errorf("can't decode messageActionPaymentSentMe#ffa00ccc to nil")
 	}
 	if err := b.ConsumeID(MessageActionPaymentSentMeTypeID); err != nil {
-		return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: %w", err)
+		return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: %w", err)
 	}
 	return m.DecodeBare(b)
 }
@@ -2163,11 +2190,11 @@ func (m *MessageActionPaymentSentMe) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (m *MessageActionPaymentSentMe) DecodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionPaymentSentMe#8f31b327 to nil")
+		return fmt.Errorf("can't decode messageActionPaymentSentMe#ffa00ccc to nil")
 	}
 	{
 		if err := m.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field flags: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field flags: %w", err)
 		}
 	}
 	m.RecurringInit = m.Flags.Has(2)
@@ -2175,40 +2202,47 @@ func (m *MessageActionPaymentSentMe) DecodeBare(b *bin.Buffer) error {
 	{
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field currency: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field currency: %w", err)
 		}
 		m.Currency = value
 	}
 	{
 		value, err := b.Long()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field total_amount: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field total_amount: %w", err)
 		}
 		m.TotalAmount = value
 	}
 	{
 		value, err := b.Bytes()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field payload: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field payload: %w", err)
 		}
 		m.Payload = value
 	}
 	if m.Flags.Has(0) {
 		if err := m.Info.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field info: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field info: %w", err)
 		}
 	}
 	if m.Flags.Has(1) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field shipping_option_id: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field shipping_option_id: %w", err)
 		}
 		m.ShippingOptionID = value
 	}
 	{
 		if err := m.Charge.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSentMe#8f31b327: field charge: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field charge: %w", err)
 		}
+	}
+	if m.Flags.Has(4) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentSentMe#ffa00ccc: field subscription_until_date: %w", err)
+		}
+		m.SubscriptionUntilDate = value
 	}
 	return nil
 }
@@ -2319,7 +2353,25 @@ func (m *MessageActionPaymentSentMe) GetCharge() (value PaymentCharge) {
 	return m.Charge
 }
 
-// MessageActionPaymentSent represents TL type `messageActionPaymentSent#96163f56`.
+// SetSubscriptionUntilDate sets value of SubscriptionUntilDate conditional field.
+func (m *MessageActionPaymentSentMe) SetSubscriptionUntilDate(value int) {
+	m.Flags.Set(4)
+	m.SubscriptionUntilDate = value
+}
+
+// GetSubscriptionUntilDate returns value of SubscriptionUntilDate conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionPaymentSentMe) GetSubscriptionUntilDate() (value int, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(4) {
+		return value, false
+	}
+	return m.SubscriptionUntilDate, true
+}
+
+// MessageActionPaymentSent represents TL type `messageActionPaymentSent#c624b16e`.
 // A payment was sent
 //
 // See https://core.telegram.org/constructor/messageActionPaymentSent for reference.
@@ -2333,10 +2385,11 @@ type MessageActionPaymentSent struct {
 	RecurringInit bool
 	// Whether this payment is part of a recurring payment
 	RecurringUsed bool
-	// Three-letter ISO 4217 currency¹ code
+	// Three-letter ISO 4217 currency¹ code, or XTR for Telegram Stars².
 	//
 	// Links:
 	//  1) https://core.telegram.org/bots/payments#supported-currencies
+	//  2) https://core.telegram.org/api/stars
 	Currency string
 	// Price of the product in the smallest units of the currency (integer, not float/double)
 	// For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in
@@ -2355,10 +2408,17 @@ type MessageActionPaymentSent struct {
 	//
 	// Use SetInvoiceSlug and GetInvoiceSlug helpers.
 	InvoiceSlug string
+	// Expiration date of the Telegram Star subscription »¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stars#star-subscriptions
+	//
+	// Use SetSubscriptionUntilDate and GetSubscriptionUntilDate helpers.
+	SubscriptionUntilDate int
 }
 
 // MessageActionPaymentSentTypeID is TL type id of MessageActionPaymentSent.
-const MessageActionPaymentSentTypeID = 0x96163f56
+const MessageActionPaymentSentTypeID = 0xc624b16e
 
 // construct implements constructor of MessageActionClass.
 func (m MessageActionPaymentSent) construct() MessageActionClass { return &m }
@@ -2395,6 +2455,9 @@ func (m *MessageActionPaymentSent) Zero() bool {
 	if !(m.InvoiceSlug == "") {
 		return false
 	}
+	if !(m.SubscriptionUntilDate == 0) {
+		return false
+	}
 
 	return true
 }
@@ -2415,6 +2478,7 @@ func (m *MessageActionPaymentSent) FillFrom(from interface {
 	GetCurrency() (value string)
 	GetTotalAmount() (value int64)
 	GetInvoiceSlug() (value string, ok bool)
+	GetSubscriptionUntilDate() (value int, ok bool)
 }) {
 	m.RecurringInit = from.GetRecurringInit()
 	m.RecurringUsed = from.GetRecurringUsed()
@@ -2422,6 +2486,10 @@ func (m *MessageActionPaymentSent) FillFrom(from interface {
 	m.TotalAmount = from.GetTotalAmount()
 	if val, ok := from.GetInvoiceSlug(); ok {
 		m.InvoiceSlug = val
+	}
+
+	if val, ok := from.GetSubscriptionUntilDate(); ok {
+		m.SubscriptionUntilDate = val
 	}
 
 }
@@ -2472,6 +2540,11 @@ func (m *MessageActionPaymentSent) TypeInfo() tdp.Type {
 			SchemaName: "invoice_slug",
 			Null:       !m.Flags.Has(0),
 		},
+		{
+			Name:       "SubscriptionUntilDate",
+			SchemaName: "subscription_until_date",
+			Null:       !m.Flags.Has(4),
+		},
 	}
 	return typ
 }
@@ -2487,12 +2560,15 @@ func (m *MessageActionPaymentSent) SetFlags() {
 	if !(m.InvoiceSlug == "") {
 		m.Flags.Set(0)
 	}
+	if !(m.SubscriptionUntilDate == 0) {
+		m.Flags.Set(4)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (m *MessageActionPaymentSent) Encode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionPaymentSent#96163f56 as nil")
+		return fmt.Errorf("can't encode messageActionPaymentSent#c624b16e as nil")
 	}
 	b.PutID(MessageActionPaymentSentTypeID)
 	return m.EncodeBare(b)
@@ -2501,16 +2577,19 @@ func (m *MessageActionPaymentSent) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (m *MessageActionPaymentSent) EncodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionPaymentSent#96163f56 as nil")
+		return fmt.Errorf("can't encode messageActionPaymentSent#c624b16e as nil")
 	}
 	m.SetFlags()
 	if err := m.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messageActionPaymentSent#96163f56: field flags: %w", err)
+		return fmt.Errorf("unable to encode messageActionPaymentSent#c624b16e: field flags: %w", err)
 	}
 	b.PutString(m.Currency)
 	b.PutLong(m.TotalAmount)
 	if m.Flags.Has(0) {
 		b.PutString(m.InvoiceSlug)
+	}
+	if m.Flags.Has(4) {
+		b.PutInt(m.SubscriptionUntilDate)
 	}
 	return nil
 }
@@ -2518,10 +2597,10 @@ func (m *MessageActionPaymentSent) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (m *MessageActionPaymentSent) Decode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionPaymentSent#96163f56 to nil")
+		return fmt.Errorf("can't decode messageActionPaymentSent#c624b16e to nil")
 	}
 	if err := b.ConsumeID(MessageActionPaymentSentTypeID); err != nil {
-		return fmt.Errorf("unable to decode messageActionPaymentSent#96163f56: %w", err)
+		return fmt.Errorf("unable to decode messageActionPaymentSent#c624b16e: %w", err)
 	}
 	return m.DecodeBare(b)
 }
@@ -2529,11 +2608,11 @@ func (m *MessageActionPaymentSent) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (m *MessageActionPaymentSent) DecodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionPaymentSent#96163f56 to nil")
+		return fmt.Errorf("can't decode messageActionPaymentSent#c624b16e to nil")
 	}
 	{
 		if err := m.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSent#96163f56: field flags: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSent#c624b16e: field flags: %w", err)
 		}
 	}
 	m.RecurringInit = m.Flags.Has(2)
@@ -2541,23 +2620,30 @@ func (m *MessageActionPaymentSent) DecodeBare(b *bin.Buffer) error {
 	{
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSent#96163f56: field currency: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSent#c624b16e: field currency: %w", err)
 		}
 		m.Currency = value
 	}
 	{
 		value, err := b.Long()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSent#96163f56: field total_amount: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSent#c624b16e: field total_amount: %w", err)
 		}
 		m.TotalAmount = value
 	}
 	if m.Flags.Has(0) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionPaymentSent#96163f56: field invoice_slug: %w", err)
+			return fmt.Errorf("unable to decode messageActionPaymentSent#c624b16e: field invoice_slug: %w", err)
 		}
 		m.InvoiceSlug = value
+	}
+	if m.Flags.Has(4) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentSent#c624b16e: field subscription_until_date: %w", err)
+		}
+		m.SubscriptionUntilDate = value
 	}
 	return nil
 }
@@ -2632,6 +2718,24 @@ func (m *MessageActionPaymentSent) GetInvoiceSlug() (value string, ok bool) {
 		return value, false
 	}
 	return m.InvoiceSlug, true
+}
+
+// SetSubscriptionUntilDate sets value of SubscriptionUntilDate conditional field.
+func (m *MessageActionPaymentSent) SetSubscriptionUntilDate(value int) {
+	m.Flags.Set(4)
+	m.SubscriptionUntilDate = value
+}
+
+// GetSubscriptionUntilDate returns value of SubscriptionUntilDate conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionPaymentSent) GetSubscriptionUntilDate() (value int, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(4) {
+		return value, false
+	}
+	return m.SubscriptionUntilDate, true
 }
 
 // MessageActionPhoneCall represents TL type `messageActionPhoneCall#80e11a7f`.
@@ -3164,21 +3268,48 @@ func (m *MessageActionCustomAction) GetMessage() (value string) {
 	return m.Message
 }
 
-// MessageActionBotAllowed represents TL type `messageActionBotAllowed#abe9affe`.
-// The domain name of the website on which the user has logged in. More about Telegram
-// Login »¹
-//
-// Links:
-//  1. https://core.telegram.org/widgets/login
+// MessageActionBotAllowed represents TL type `messageActionBotAllowed#c516d679`.
+// We have given the bot permission to send us direct messages.
+// The optional fields specify how did we authorize the bot to send us messages.
 //
 // See https://core.telegram.org/constructor/messageActionBotAllowed for reference.
 type MessageActionBotAllowed struct {
-	// The domain name of the website on which the user has logged in.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// We have authorized the bot to send us messages by installing the bot's attachment
+	// menu¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/bots/attach
+	AttachMenu bool
+	// We have allowed the bot to send us messages using bots.allowSendMessage »¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/method/bots.allowSendMessage
+	FromRequest bool
+	// We have authorized the bot to send us messages by logging into a website via Telegram
+	// Login »¹; this field contains the domain name of the website on which the user has
+	// logged in.
+	//
+	// Links:
+	//  1) https://core.telegram.org/widgets/login
+	//
+	// Use SetDomain and GetDomain helpers.
 	Domain string
+	// We have authorized the bot to send us messages by opening the specified bot mini app¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/bots/webapps
+	//
+	// Use SetApp and GetApp helpers.
+	App BotAppClass
 }
 
 // MessageActionBotAllowedTypeID is TL type id of MessageActionBotAllowed.
-const MessageActionBotAllowedTypeID = 0xabe9affe
+const MessageActionBotAllowedTypeID = 0xc516d679
 
 // construct implements constructor of MessageActionClass.
 func (m MessageActionBotAllowed) construct() MessageActionClass { return &m }
@@ -3197,7 +3328,19 @@ func (m *MessageActionBotAllowed) Zero() bool {
 	if m == nil {
 		return true
 	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.AttachMenu == false) {
+		return false
+	}
+	if !(m.FromRequest == false) {
+		return false
+	}
 	if !(m.Domain == "") {
+		return false
+	}
+	if !(m.App == nil) {
 		return false
 	}
 
@@ -3215,9 +3358,21 @@ func (m *MessageActionBotAllowed) String() string {
 
 // FillFrom fills MessageActionBotAllowed from given interface.
 func (m *MessageActionBotAllowed) FillFrom(from interface {
-	GetDomain() (value string)
+	GetAttachMenu() (value bool)
+	GetFromRequest() (value bool)
+	GetDomain() (value string, ok bool)
+	GetApp() (value BotAppClass, ok bool)
 }) {
-	m.Domain = from.GetDomain()
+	m.AttachMenu = from.GetAttachMenu()
+	m.FromRequest = from.GetFromRequest()
+	if val, ok := from.GetDomain(); ok {
+		m.Domain = val
+	}
+
+	if val, ok := from.GetApp(); ok {
+		m.App = val
+	}
+
 }
 
 // TypeID returns type id in TL schema.
@@ -3244,17 +3399,49 @@ func (m *MessageActionBotAllowed) TypeInfo() tdp.Type {
 	}
 	typ.Fields = []tdp.Field{
 		{
+			Name:       "AttachMenu",
+			SchemaName: "attach_menu",
+			Null:       !m.Flags.Has(1),
+		},
+		{
+			Name:       "FromRequest",
+			SchemaName: "from_request",
+			Null:       !m.Flags.Has(3),
+		},
+		{
 			Name:       "Domain",
 			SchemaName: "domain",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "App",
+			SchemaName: "app",
+			Null:       !m.Flags.Has(2),
 		},
 	}
 	return typ
 }
 
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionBotAllowed) SetFlags() {
+	if !(m.AttachMenu == false) {
+		m.Flags.Set(1)
+	}
+	if !(m.FromRequest == false) {
+		m.Flags.Set(3)
+	}
+	if !(m.Domain == "") {
+		m.Flags.Set(0)
+	}
+	if !(m.App == nil) {
+		m.Flags.Set(2)
+	}
+}
+
 // Encode implements bin.Encoder.
 func (m *MessageActionBotAllowed) Encode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionBotAllowed#abe9affe as nil")
+		return fmt.Errorf("can't encode messageActionBotAllowed#c516d679 as nil")
 	}
 	b.PutID(MessageActionBotAllowedTypeID)
 	return m.EncodeBare(b)
@@ -3263,19 +3450,33 @@ func (m *MessageActionBotAllowed) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (m *MessageActionBotAllowed) EncodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionBotAllowed#abe9affe as nil")
+		return fmt.Errorf("can't encode messageActionBotAllowed#c516d679 as nil")
 	}
-	b.PutString(m.Domain)
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionBotAllowed#c516d679: field flags: %w", err)
+	}
+	if m.Flags.Has(0) {
+		b.PutString(m.Domain)
+	}
+	if m.Flags.Has(2) {
+		if m.App == nil {
+			return fmt.Errorf("unable to encode messageActionBotAllowed#c516d679: field app is nil")
+		}
+		if err := m.App.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionBotAllowed#c516d679: field app: %w", err)
+		}
+	}
 	return nil
 }
 
 // Decode implements bin.Decoder.
 func (m *MessageActionBotAllowed) Decode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionBotAllowed#abe9affe to nil")
+		return fmt.Errorf("can't decode messageActionBotAllowed#c516d679 to nil")
 	}
 	if err := b.ConsumeID(MessageActionBotAllowedTypeID); err != nil {
-		return fmt.Errorf("unable to decode messageActionBotAllowed#abe9affe: %w", err)
+		return fmt.Errorf("unable to decode messageActionBotAllowed#c516d679: %w", err)
 	}
 	return m.DecodeBare(b)
 }
@@ -3283,24 +3484,104 @@ func (m *MessageActionBotAllowed) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (m *MessageActionBotAllowed) DecodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionBotAllowed#abe9affe to nil")
+		return fmt.Errorf("can't decode messageActionBotAllowed#c516d679 to nil")
 	}
 	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionBotAllowed#c516d679: field flags: %w", err)
+		}
+	}
+	m.AttachMenu = m.Flags.Has(1)
+	m.FromRequest = m.Flags.Has(3)
+	if m.Flags.Has(0) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionBotAllowed#abe9affe: field domain: %w", err)
+			return fmt.Errorf("unable to decode messageActionBotAllowed#c516d679: field domain: %w", err)
 		}
 		m.Domain = value
+	}
+	if m.Flags.Has(2) {
+		value, err := DecodeBotApp(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionBotAllowed#c516d679: field app: %w", err)
+		}
+		m.App = value
 	}
 	return nil
 }
 
-// GetDomain returns value of Domain field.
-func (m *MessageActionBotAllowed) GetDomain() (value string) {
+// SetAttachMenu sets value of AttachMenu conditional field.
+func (m *MessageActionBotAllowed) SetAttachMenu(value bool) {
+	if value {
+		m.Flags.Set(1)
+		m.AttachMenu = true
+	} else {
+		m.Flags.Unset(1)
+		m.AttachMenu = false
+	}
+}
+
+// GetAttachMenu returns value of AttachMenu conditional field.
+func (m *MessageActionBotAllowed) GetAttachMenu() (value bool) {
 	if m == nil {
 		return
 	}
-	return m.Domain
+	return m.Flags.Has(1)
+}
+
+// SetFromRequest sets value of FromRequest conditional field.
+func (m *MessageActionBotAllowed) SetFromRequest(value bool) {
+	if value {
+		m.Flags.Set(3)
+		m.FromRequest = true
+	} else {
+		m.Flags.Unset(3)
+		m.FromRequest = false
+	}
+}
+
+// GetFromRequest returns value of FromRequest conditional field.
+func (m *MessageActionBotAllowed) GetFromRequest() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(3)
+}
+
+// SetDomain sets value of Domain conditional field.
+func (m *MessageActionBotAllowed) SetDomain(value string) {
+	m.Flags.Set(0)
+	m.Domain = value
+}
+
+// GetDomain returns value of Domain conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionBotAllowed) GetDomain() (value string, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.Domain, true
+}
+
+// SetApp sets value of App conditional field.
+func (m *MessageActionBotAllowed) SetApp(value BotAppClass) {
+	m.Flags.Set(2)
+	m.App = value
+}
+
+// GetApp returns value of App conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionBotAllowed) GetApp() (value BotAppClass, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(2) {
+		return value, false
+	}
+	return m.App, true
 }
 
 // MessageActionSecureValuesSentMe represents TL type `messageActionSecureValuesSentMe#1b287353`.
@@ -4333,11 +4614,21 @@ func (m *MessageActionInviteToGroupCall) GetUsers() (value []int64) {
 //
 // See https://core.telegram.org/constructor/messageActionSetMessagesTTL for reference.
 type MessageActionSetMessagesTTL struct {
-	// Flags field of MessageActionSetMessagesTTL.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// New Time-To-Live
+	// New Time-To-Live of all messages sent in this chat; if 0, autodeletion was disabled.
 	Period int
-	// AutoSettingFrom field of MessageActionSetMessagesTTL.
+	// If set, the chat TTL setting was set not due to a manual change by one of participants
+	// but automatically because one of the participants has the default TTL settings
+	// enabled »¹. For example, when a user writes to us for the first time and we have set
+	// a default messages TTL of 1 week, this service message (with
+	// auto_setting_from=our_userid) will be emitted before our first message.
+	//
+	// Links:
+	//  1) https://core.telegram.org/method/messages.setDefaultHistoryTTL
 	//
 	// Use SetAutoSettingFrom and GetAutoSettingFrom helpers.
 	AutoSettingFrom int64
@@ -4929,7 +5220,7 @@ func (m *MessageActionChatJoinedByRequest) DecodeBare(b *bin.Buffer) error {
 }
 
 // MessageActionWebViewDataSentMe represents TL type `messageActionWebViewDataSentMe#47dd8079`.
-// Data from an opened reply keyboard bot web app¹ was relayed to the bot that owns it
+// Data from an opened reply keyboard bot mini app¹ was relayed to the bot that owns it
 // (bot side service message).
 //
 // Links:
@@ -5098,7 +5389,7 @@ func (m *MessageActionWebViewDataSentMe) GetData() (value string) {
 }
 
 // MessageActionWebViewDataSent represents TL type `messageActionWebViewDataSent#b4c38cb5`.
-// Data from an opened reply keyboard bot web app¹ was relayed to the bot that owns it
+// Data from an opened reply keyboard bot mini app¹ was relayed to the bot that owns it
 // (user side service message).
 // Clients should display a service message with the text Data from the «$text» button
 // was transferred to the bot.
@@ -5241,11 +5532,16 @@ func (m *MessageActionWebViewDataSent) GetText() (value string) {
 	return m.Text
 }
 
-// MessageActionGiftPremium represents TL type `messageActionGiftPremium#aba0f5c6`.
+// MessageActionGiftPremium represents TL type `messageActionGiftPremium#6c6274fa`.
 // Info about a gifted Telegram Premium subscription
 //
 // See https://core.telegram.org/constructor/messageActionGiftPremium for reference.
 type MessageActionGiftPremium struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
 	// Three-letter ISO 4217 currency¹ code
 	//
 	// Links:
@@ -5261,10 +5557,23 @@ type MessageActionGiftPremium struct {
 	Amount int64
 	// Duration of the gifted Telegram Premium subscription
 	Months int
+	// If the gift was bought using a cryptocurrency, the cryptocurrency name.
+	//
+	// Use SetCryptoCurrency and GetCryptoCurrency helpers.
+	CryptoCurrency string
+	// If the gift was bought using a cryptocurrency, price of the gift in the smallest units
+	// of a cryptocurrency.
+	//
+	// Use SetCryptoAmount and GetCryptoAmount helpers.
+	CryptoAmount int64
+	// Message attached with the gift
+	//
+	// Use SetMessage and GetMessage helpers.
+	Message TextWithEntities
 }
 
 // MessageActionGiftPremiumTypeID is TL type id of MessageActionGiftPremium.
-const MessageActionGiftPremiumTypeID = 0xaba0f5c6
+const MessageActionGiftPremiumTypeID = 0x6c6274fa
 
 // construct implements constructor of MessageActionClass.
 func (m MessageActionGiftPremium) construct() MessageActionClass { return &m }
@@ -5283,6 +5592,9 @@ func (m *MessageActionGiftPremium) Zero() bool {
 	if m == nil {
 		return true
 	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
 	if !(m.Currency == "") {
 		return false
 	}
@@ -5290,6 +5602,15 @@ func (m *MessageActionGiftPremium) Zero() bool {
 		return false
 	}
 	if !(m.Months == 0) {
+		return false
+	}
+	if !(m.CryptoCurrency == "") {
+		return false
+	}
+	if !(m.CryptoAmount == 0) {
+		return false
+	}
+	if !(m.Message.Zero()) {
 		return false
 	}
 
@@ -5310,10 +5631,25 @@ func (m *MessageActionGiftPremium) FillFrom(from interface {
 	GetCurrency() (value string)
 	GetAmount() (value int64)
 	GetMonths() (value int)
+	GetCryptoCurrency() (value string, ok bool)
+	GetCryptoAmount() (value int64, ok bool)
+	GetMessage() (value TextWithEntities, ok bool)
 }) {
 	m.Currency = from.GetCurrency()
 	m.Amount = from.GetAmount()
 	m.Months = from.GetMonths()
+	if val, ok := from.GetCryptoCurrency(); ok {
+		m.CryptoCurrency = val
+	}
+
+	if val, ok := from.GetCryptoAmount(); ok {
+		m.CryptoAmount = val
+	}
+
+	if val, ok := from.GetMessage(); ok {
+		m.Message = val
+	}
+
 }
 
 // TypeID returns type id in TL schema.
@@ -5351,14 +5687,42 @@ func (m *MessageActionGiftPremium) TypeInfo() tdp.Type {
 			Name:       "Months",
 			SchemaName: "months",
 		},
+		{
+			Name:       "CryptoCurrency",
+			SchemaName: "crypto_currency",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "CryptoAmount",
+			SchemaName: "crypto_amount",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "Message",
+			SchemaName: "message",
+			Null:       !m.Flags.Has(1),
+		},
 	}
 	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionGiftPremium) SetFlags() {
+	if !(m.CryptoCurrency == "") {
+		m.Flags.Set(0)
+	}
+	if !(m.CryptoAmount == 0) {
+		m.Flags.Set(0)
+	}
+	if !(m.Message.Zero()) {
+		m.Flags.Set(1)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (m *MessageActionGiftPremium) Encode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionGiftPremium#aba0f5c6 as nil")
+		return fmt.Errorf("can't encode messageActionGiftPremium#6c6274fa as nil")
 	}
 	b.PutID(MessageActionGiftPremiumTypeID)
 	return m.EncodeBare(b)
@@ -5367,21 +5731,36 @@ func (m *MessageActionGiftPremium) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (m *MessageActionGiftPremium) EncodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionGiftPremium#aba0f5c6 as nil")
+		return fmt.Errorf("can't encode messageActionGiftPremium#6c6274fa as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionGiftPremium#6c6274fa: field flags: %w", err)
 	}
 	b.PutString(m.Currency)
 	b.PutLong(m.Amount)
 	b.PutInt(m.Months)
+	if m.Flags.Has(0) {
+		b.PutString(m.CryptoCurrency)
+	}
+	if m.Flags.Has(0) {
+		b.PutLong(m.CryptoAmount)
+	}
+	if m.Flags.Has(1) {
+		if err := m.Message.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionGiftPremium#6c6274fa: field message: %w", err)
+		}
+	}
 	return nil
 }
 
 // Decode implements bin.Decoder.
 func (m *MessageActionGiftPremium) Decode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionGiftPremium#aba0f5c6 to nil")
+		return fmt.Errorf("can't decode messageActionGiftPremium#6c6274fa to nil")
 	}
 	if err := b.ConsumeID(MessageActionGiftPremiumTypeID); err != nil {
-		return fmt.Errorf("unable to decode messageActionGiftPremium#aba0f5c6: %w", err)
+		return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: %w", err)
 	}
 	return m.DecodeBare(b)
 }
@@ -5389,28 +5768,52 @@ func (m *MessageActionGiftPremium) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (m *MessageActionGiftPremium) DecodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionGiftPremium#aba0f5c6 to nil")
+		return fmt.Errorf("can't decode messageActionGiftPremium#6c6274fa to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field flags: %w", err)
+		}
 	}
 	{
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionGiftPremium#aba0f5c6: field currency: %w", err)
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field currency: %w", err)
 		}
 		m.Currency = value
 	}
 	{
 		value, err := b.Long()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionGiftPremium#aba0f5c6: field amount: %w", err)
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field amount: %w", err)
 		}
 		m.Amount = value
 	}
 	{
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionGiftPremium#aba0f5c6: field months: %w", err)
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field months: %w", err)
 		}
 		m.Months = value
+	}
+	if m.Flags.Has(0) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field crypto_currency: %w", err)
+		}
+		m.CryptoCurrency = value
+	}
+	if m.Flags.Has(0) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field crypto_amount: %w", err)
+		}
+		m.CryptoAmount = value
+	}
+	if m.Flags.Has(1) {
+		if err := m.Message.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftPremium#6c6274fa: field message: %w", err)
+		}
 	}
 	return nil
 }
@@ -5439,17 +5842,82 @@ func (m *MessageActionGiftPremium) GetMonths() (value int) {
 	return m.Months
 }
 
+// SetCryptoCurrency sets value of CryptoCurrency conditional field.
+func (m *MessageActionGiftPremium) SetCryptoCurrency(value string) {
+	m.Flags.Set(0)
+	m.CryptoCurrency = value
+}
+
+// GetCryptoCurrency returns value of CryptoCurrency conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftPremium) GetCryptoCurrency() (value string, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.CryptoCurrency, true
+}
+
+// SetCryptoAmount sets value of CryptoAmount conditional field.
+func (m *MessageActionGiftPremium) SetCryptoAmount(value int64) {
+	m.Flags.Set(0)
+	m.CryptoAmount = value
+}
+
+// GetCryptoAmount returns value of CryptoAmount conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftPremium) GetCryptoAmount() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.CryptoAmount, true
+}
+
+// SetMessage sets value of Message conditional field.
+func (m *MessageActionGiftPremium) SetMessage(value TextWithEntities) {
+	m.Flags.Set(1)
+	m.Message = value
+}
+
+// GetMessage returns value of Message conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftPremium) GetMessage() (value TextWithEntities, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(1) {
+		return value, false
+	}
+	return m.Message, true
+}
+
 // MessageActionTopicCreate represents TL type `messageActionTopicCreate#d999256`.
+// A forum topic¹ was created.
+//
+// Links:
+//  1. https://core.telegram.org/api/forum#forum-topics
 //
 // See https://core.telegram.org/constructor/messageActionTopicCreate for reference.
 type MessageActionTopicCreate struct {
-	// Flags field of MessageActionTopicCreate.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// Title field of MessageActionTopicCreate.
+	// Topic name.
 	Title string
-	// IconColor field of MessageActionTopicCreate.
+	// If no custom emoji icon is specified, specifies the color of the fallback topic icon
+	// (RGB), one of 0x6FB9F0, 0xFFD67E, 0xCB86DB, 0x8EEE98, 0xFF93B2, or 0xFB6F5F.
 	IconColor int
-	// IconEmojiID field of MessageActionTopicCreate.
+	// ID of the custom emoji¹ used as topic icon.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/custom-emoji
 	//
 	// Use SetIconEmojiID and GetIconEmojiID helpers.
 	IconEmojiID int64
@@ -5667,24 +6135,34 @@ func (m *MessageActionTopicCreate) GetIconEmojiID() (value int64, ok bool) {
 }
 
 // MessageActionTopicEdit represents TL type `messageActionTopicEdit#c0944820`.
+// Forum topic¹ information was edited.
+//
+// Links:
+//  1. https://core.telegram.org/api/forum#forum-topics
 //
 // See https://core.telegram.org/constructor/messageActionTopicEdit for reference.
 type MessageActionTopicEdit struct {
-	// Flags field of MessageActionTopicEdit.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// Title field of MessageActionTopicEdit.
+	// New topic title.
 	//
 	// Use SetTitle and GetTitle helpers.
 	Title string
-	// IconEmojiID field of MessageActionTopicEdit.
+	// ID of the new custom emoji¹ used as topic icon, or if it was removed.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/custom-emoji
 	//
 	// Use SetIconEmojiID and GetIconEmojiID helpers.
 	IconEmojiID int64
-	// Closed field of MessageActionTopicEdit.
+	// Whether the topic was opened or closed.
 	//
 	// Use SetClosed and GetClosed helpers.
 	Closed bool
-	// Hidden field of MessageActionTopicEdit.
+	// Whether the topic was hidden or unhidden (only valid for the "General" topic, id=1).
 	//
 	// Use SetHidden and GetHidden helpers.
 	Hidden bool
@@ -5984,10 +6462,14 @@ func (m *MessageActionTopicEdit) GetHidden() (value bool, ok bool) {
 }
 
 // MessageActionSuggestProfilePhoto represents TL type `messageActionSuggestProfilePhoto#57de635e`.
+// A new profile picture was suggested using photos.uploadContactProfilePhoto¹.
+//
+// Links:
+//  1. https://core.telegram.org/method/photos.uploadContactProfilePhoto
 //
 // See https://core.telegram.org/constructor/messageActionSuggestProfilePhoto for reference.
 type MessageActionSuggestProfilePhoto struct {
-	// Photo field of MessageActionSuggestProfilePhoto.
+	// The photo that the user suggested we set as profile picture.
 	Photo PhotoClass
 }
 
@@ -6122,119 +6604,26 @@ func (m *MessageActionSuggestProfilePhoto) GetPhoto() (value PhotoClass) {
 	return m.Photo
 }
 
-// MessageActionAttachMenuBotAllowed represents TL type `messageActionAttachMenuBotAllowed#e7e75f97`.
+// MessageActionRequestedPeer represents TL type `messageActionRequestedPeer#31518e9b`.
+// Contains info about one or more peers that the we (the user) shared with the bot after
+// clicking on a keyboardButtonRequestPeer¹ button (service message sent by the user).
 //
-// See https://core.telegram.org/constructor/messageActionAttachMenuBotAllowed for reference.
-type MessageActionAttachMenuBotAllowed struct {
-}
-
-// MessageActionAttachMenuBotAllowedTypeID is TL type id of MessageActionAttachMenuBotAllowed.
-const MessageActionAttachMenuBotAllowedTypeID = 0xe7e75f97
-
-// construct implements constructor of MessageActionClass.
-func (m MessageActionAttachMenuBotAllowed) construct() MessageActionClass { return &m }
-
-// Ensuring interfaces in compile-time for MessageActionAttachMenuBotAllowed.
-var (
-	_ bin.Encoder     = &MessageActionAttachMenuBotAllowed{}
-	_ bin.Decoder     = &MessageActionAttachMenuBotAllowed{}
-	_ bin.BareEncoder = &MessageActionAttachMenuBotAllowed{}
-	_ bin.BareDecoder = &MessageActionAttachMenuBotAllowed{}
-
-	_ MessageActionClass = &MessageActionAttachMenuBotAllowed{}
-)
-
-func (m *MessageActionAttachMenuBotAllowed) Zero() bool {
-	if m == nil {
-		return true
-	}
-
-	return true
-}
-
-// String implements fmt.Stringer.
-func (m *MessageActionAttachMenuBotAllowed) String() string {
-	if m == nil {
-		return "MessageActionAttachMenuBotAllowed(nil)"
-	}
-	type Alias MessageActionAttachMenuBotAllowed
-	return fmt.Sprintf("MessageActionAttachMenuBotAllowed%+v", Alias(*m))
-}
-
-// TypeID returns type id in TL schema.
-//
-// See https://core.telegram.org/mtproto/TL-tl#remarks.
-func (*MessageActionAttachMenuBotAllowed) TypeID() uint32 {
-	return MessageActionAttachMenuBotAllowedTypeID
-}
-
-// TypeName returns name of type in TL schema.
-func (*MessageActionAttachMenuBotAllowed) TypeName() string {
-	return "messageActionAttachMenuBotAllowed"
-}
-
-// TypeInfo returns info about TL type.
-func (m *MessageActionAttachMenuBotAllowed) TypeInfo() tdp.Type {
-	typ := tdp.Type{
-		Name: "messageActionAttachMenuBotAllowed",
-		ID:   MessageActionAttachMenuBotAllowedTypeID,
-	}
-	if m == nil {
-		typ.Null = true
-		return typ
-	}
-	typ.Fields = []tdp.Field{}
-	return typ
-}
-
-// Encode implements bin.Encoder.
-func (m *MessageActionAttachMenuBotAllowed) Encode(b *bin.Buffer) error {
-	if m == nil {
-		return fmt.Errorf("can't encode messageActionAttachMenuBotAllowed#e7e75f97 as nil")
-	}
-	b.PutID(MessageActionAttachMenuBotAllowedTypeID)
-	return m.EncodeBare(b)
-}
-
-// EncodeBare implements bin.BareEncoder.
-func (m *MessageActionAttachMenuBotAllowed) EncodeBare(b *bin.Buffer) error {
-	if m == nil {
-		return fmt.Errorf("can't encode messageActionAttachMenuBotAllowed#e7e75f97 as nil")
-	}
-	return nil
-}
-
-// Decode implements bin.Decoder.
-func (m *MessageActionAttachMenuBotAllowed) Decode(b *bin.Buffer) error {
-	if m == nil {
-		return fmt.Errorf("can't decode messageActionAttachMenuBotAllowed#e7e75f97 to nil")
-	}
-	if err := b.ConsumeID(MessageActionAttachMenuBotAllowedTypeID); err != nil {
-		return fmt.Errorf("unable to decode messageActionAttachMenuBotAllowed#e7e75f97: %w", err)
-	}
-	return m.DecodeBare(b)
-}
-
-// DecodeBare implements bin.BareDecoder.
-func (m *MessageActionAttachMenuBotAllowed) DecodeBare(b *bin.Buffer) error {
-	if m == nil {
-		return fmt.Errorf("can't decode messageActionAttachMenuBotAllowed#e7e75f97 to nil")
-	}
-	return nil
-}
-
-// MessageActionRequestedPeer represents TL type `messageActionRequestedPeer#fe77345d`.
+// Links:
+//  1. https://core.telegram.org/constructor/keyboardButtonRequestPeer
 //
 // See https://core.telegram.org/constructor/messageActionRequestedPeer for reference.
 type MessageActionRequestedPeer struct {
-	// ButtonID field of MessageActionRequestedPeer.
+	// button_id contained in the keyboardButtonRequestPeer¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/keyboardButtonRequestPeer
 	ButtonID int
-	// Peer field of MessageActionRequestedPeer.
-	Peer PeerClass
+	// The shared peers
+	Peers []PeerClass
 }
 
 // MessageActionRequestedPeerTypeID is TL type id of MessageActionRequestedPeer.
-const MessageActionRequestedPeerTypeID = 0xfe77345d
+const MessageActionRequestedPeerTypeID = 0x31518e9b
 
 // construct implements constructor of MessageActionClass.
 func (m MessageActionRequestedPeer) construct() MessageActionClass { return &m }
@@ -6256,7 +6645,7 @@ func (m *MessageActionRequestedPeer) Zero() bool {
 	if !(m.ButtonID == 0) {
 		return false
 	}
-	if !(m.Peer == nil) {
+	if !(m.Peers == nil) {
 		return false
 	}
 
@@ -6275,10 +6664,10 @@ func (m *MessageActionRequestedPeer) String() string {
 // FillFrom fills MessageActionRequestedPeer from given interface.
 func (m *MessageActionRequestedPeer) FillFrom(from interface {
 	GetButtonID() (value int)
-	GetPeer() (value PeerClass)
+	GetPeers() (value []PeerClass)
 }) {
 	m.ButtonID = from.GetButtonID()
-	m.Peer = from.GetPeer()
+	m.Peers = from.GetPeers()
 }
 
 // TypeID returns type id in TL schema.
@@ -6309,8 +6698,8 @@ func (m *MessageActionRequestedPeer) TypeInfo() tdp.Type {
 			SchemaName: "button_id",
 		},
 		{
-			Name:       "Peer",
-			SchemaName: "peer",
+			Name:       "Peers",
+			SchemaName: "peers",
 		},
 	}
 	return typ
@@ -6319,7 +6708,7 @@ func (m *MessageActionRequestedPeer) TypeInfo() tdp.Type {
 // Encode implements bin.Encoder.
 func (m *MessageActionRequestedPeer) Encode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionRequestedPeer#fe77345d as nil")
+		return fmt.Errorf("can't encode messageActionRequestedPeer#31518e9b as nil")
 	}
 	b.PutID(MessageActionRequestedPeerTypeID)
 	return m.EncodeBare(b)
@@ -6328,14 +6717,17 @@ func (m *MessageActionRequestedPeer) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (m *MessageActionRequestedPeer) EncodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't encode messageActionRequestedPeer#fe77345d as nil")
+		return fmt.Errorf("can't encode messageActionRequestedPeer#31518e9b as nil")
 	}
 	b.PutInt(m.ButtonID)
-	if m.Peer == nil {
-		return fmt.Errorf("unable to encode messageActionRequestedPeer#fe77345d: field peer is nil")
-	}
-	if err := m.Peer.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messageActionRequestedPeer#fe77345d: field peer: %w", err)
+	b.PutVectorHeader(len(m.Peers))
+	for idx, v := range m.Peers {
+		if v == nil {
+			return fmt.Errorf("unable to encode messageActionRequestedPeer#31518e9b: field peers element with index %d is nil", idx)
+		}
+		if err := v.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionRequestedPeer#31518e9b: field peers element with index %d: %w", idx, err)
+		}
 	}
 	return nil
 }
@@ -6343,10 +6735,10 @@ func (m *MessageActionRequestedPeer) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (m *MessageActionRequestedPeer) Decode(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionRequestedPeer#fe77345d to nil")
+		return fmt.Errorf("can't decode messageActionRequestedPeer#31518e9b to nil")
 	}
 	if err := b.ConsumeID(MessageActionRequestedPeerTypeID); err != nil {
-		return fmt.Errorf("unable to decode messageActionRequestedPeer#fe77345d: %w", err)
+		return fmt.Errorf("unable to decode messageActionRequestedPeer#31518e9b: %w", err)
 	}
 	return m.DecodeBare(b)
 }
@@ -6354,21 +6746,31 @@ func (m *MessageActionRequestedPeer) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (m *MessageActionRequestedPeer) DecodeBare(b *bin.Buffer) error {
 	if m == nil {
-		return fmt.Errorf("can't decode messageActionRequestedPeer#fe77345d to nil")
+		return fmt.Errorf("can't decode messageActionRequestedPeer#31518e9b to nil")
 	}
 	{
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionRequestedPeer#fe77345d: field button_id: %w", err)
+			return fmt.Errorf("unable to decode messageActionRequestedPeer#31518e9b: field button_id: %w", err)
 		}
 		m.ButtonID = value
 	}
 	{
-		value, err := DecodePeer(b)
+		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode messageActionRequestedPeer#fe77345d: field peer: %w", err)
+			return fmt.Errorf("unable to decode messageActionRequestedPeer#31518e9b: field peers: %w", err)
 		}
-		m.Peer = value
+
+		if headerLen > 0 {
+			m.Peers = make([]PeerClass, 0, headerLen%bin.PreallocateLimit)
+		}
+		for idx := 0; idx < headerLen; idx++ {
+			value, err := DecodePeer(b)
+			if err != nil {
+				return fmt.Errorf("unable to decode messageActionRequestedPeer#31518e9b: field peers: %w", err)
+			}
+			m.Peers = append(m.Peers, value)
+		}
 	}
 	return nil
 }
@@ -6381,12 +6783,3506 @@ func (m *MessageActionRequestedPeer) GetButtonID() (value int) {
 	return m.ButtonID
 }
 
+// GetPeers returns value of Peers field.
+func (m *MessageActionRequestedPeer) GetPeers() (value []PeerClass) {
+	if m == nil {
+		return
+	}
+	return m.Peers
+}
+
+// MapPeers returns field Peers wrapped in PeerClassArray helper.
+func (m *MessageActionRequestedPeer) MapPeers() (value PeerClassArray) {
+	return PeerClassArray(m.Peers)
+}
+
+// MessageActionSetChatWallPaper represents TL type `messageActionSetChatWallPaper#5060a3f4`.
+// The wallpaper »¹ of the current chat was changed.
+//
+// Links:
+//  1. https://core.telegram.org/api/wallpapers
+//
+// See https://core.telegram.org/constructor/messageActionSetChatWallPaper for reference.
+type MessageActionSetChatWallPaper struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// If set, indicates the user applied a wallpaper »¹ previously sent by the other user
+	// in a messageActionSetChatWallPaper² message.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/wallpapers
+	//  2) https://core.telegram.org/constructor/messageActionSetChatWallPaper
+	Same bool
+	// If set, indicates the wallpaper was forcefully applied for both sides, without
+	// explicit confirmation from the other side. If the message is incoming, and we did not
+	// like the new wallpaper the other user has chosen for us, we can re-set our previous
+	// wallpaper just on our side, by invoking messages.setChatWallPaper¹, providing only
+	// the revert flag (and obviously the peer parameter).
+	//
+	// Links:
+	//  1) https://core.telegram.org/method/messages.setChatWallPaper
+	ForBoth bool
+	// New wallpaper¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/wallpapers
+	Wallpaper WallPaperClass
+}
+
+// MessageActionSetChatWallPaperTypeID is TL type id of MessageActionSetChatWallPaper.
+const MessageActionSetChatWallPaperTypeID = 0x5060a3f4
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionSetChatWallPaper) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionSetChatWallPaper.
+var (
+	_ bin.Encoder     = &MessageActionSetChatWallPaper{}
+	_ bin.Decoder     = &MessageActionSetChatWallPaper{}
+	_ bin.BareEncoder = &MessageActionSetChatWallPaper{}
+	_ bin.BareDecoder = &MessageActionSetChatWallPaper{}
+
+	_ MessageActionClass = &MessageActionSetChatWallPaper{}
+)
+
+func (m *MessageActionSetChatWallPaper) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Same == false) {
+		return false
+	}
+	if !(m.ForBoth == false) {
+		return false
+	}
+	if !(m.Wallpaper == nil) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionSetChatWallPaper) String() string {
+	if m == nil {
+		return "MessageActionSetChatWallPaper(nil)"
+	}
+	type Alias MessageActionSetChatWallPaper
+	return fmt.Sprintf("MessageActionSetChatWallPaper%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionSetChatWallPaper from given interface.
+func (m *MessageActionSetChatWallPaper) FillFrom(from interface {
+	GetSame() (value bool)
+	GetForBoth() (value bool)
+	GetWallpaper() (value WallPaperClass)
+}) {
+	m.Same = from.GetSame()
+	m.ForBoth = from.GetForBoth()
+	m.Wallpaper = from.GetWallpaper()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionSetChatWallPaper) TypeID() uint32 {
+	return MessageActionSetChatWallPaperTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionSetChatWallPaper) TypeName() string {
+	return "messageActionSetChatWallPaper"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionSetChatWallPaper) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionSetChatWallPaper",
+		ID:   MessageActionSetChatWallPaperTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Same",
+			SchemaName: "same",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "ForBoth",
+			SchemaName: "for_both",
+			Null:       !m.Flags.Has(1),
+		},
+		{
+			Name:       "Wallpaper",
+			SchemaName: "wallpaper",
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionSetChatWallPaper) SetFlags() {
+	if !(m.Same == false) {
+		m.Flags.Set(0)
+	}
+	if !(m.ForBoth == false) {
+		m.Flags.Set(1)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionSetChatWallPaper) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionSetChatWallPaper#5060a3f4 as nil")
+	}
+	b.PutID(MessageActionSetChatWallPaperTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionSetChatWallPaper) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionSetChatWallPaper#5060a3f4 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionSetChatWallPaper#5060a3f4: field flags: %w", err)
+	}
+	if m.Wallpaper == nil {
+		return fmt.Errorf("unable to encode messageActionSetChatWallPaper#5060a3f4: field wallpaper is nil")
+	}
+	if err := m.Wallpaper.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionSetChatWallPaper#5060a3f4: field wallpaper: %w", err)
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionSetChatWallPaper) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionSetChatWallPaper#5060a3f4 to nil")
+	}
+	if err := b.ConsumeID(MessageActionSetChatWallPaperTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionSetChatWallPaper#5060a3f4: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionSetChatWallPaper) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionSetChatWallPaper#5060a3f4 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionSetChatWallPaper#5060a3f4: field flags: %w", err)
+		}
+	}
+	m.Same = m.Flags.Has(0)
+	m.ForBoth = m.Flags.Has(1)
+	{
+		value, err := DecodeWallPaper(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionSetChatWallPaper#5060a3f4: field wallpaper: %w", err)
+		}
+		m.Wallpaper = value
+	}
+	return nil
+}
+
+// SetSame sets value of Same conditional field.
+func (m *MessageActionSetChatWallPaper) SetSame(value bool) {
+	if value {
+		m.Flags.Set(0)
+		m.Same = true
+	} else {
+		m.Flags.Unset(0)
+		m.Same = false
+	}
+}
+
+// GetSame returns value of Same conditional field.
+func (m *MessageActionSetChatWallPaper) GetSame() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(0)
+}
+
+// SetForBoth sets value of ForBoth conditional field.
+func (m *MessageActionSetChatWallPaper) SetForBoth(value bool) {
+	if value {
+		m.Flags.Set(1)
+		m.ForBoth = true
+	} else {
+		m.Flags.Unset(1)
+		m.ForBoth = false
+	}
+}
+
+// GetForBoth returns value of ForBoth conditional field.
+func (m *MessageActionSetChatWallPaper) GetForBoth() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(1)
+}
+
+// GetWallpaper returns value of Wallpaper field.
+func (m *MessageActionSetChatWallPaper) GetWallpaper() (value WallPaperClass) {
+	if m == nil {
+		return
+	}
+	return m.Wallpaper
+}
+
+// MessageActionGiftCode represents TL type `messageActionGiftCode#56d03994`.
+// Contains a Telegram Premium giftcode link¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/links#premium-giftcode-links
+//
+// See https://core.telegram.org/constructor/messageActionGiftCode for reference.
+type MessageActionGiftCode struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// If set, this gift code was received from a giveaway »¹ started by a
+	// channel/supergroup we're subscribed to.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/giveaways
+	ViaGiveaway bool
+	// If set, the link was not redeemed¹ yet.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/links#premium-giftcode-links
+	Unclaimed bool
+	// Identifier of the channel/supergroup that created the gift code either directly or
+	// through a giveaway¹: if we import this giftcode link, we will also automatically
+	// boost² this channel/supergroup.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/giveaways
+	//  2) https://core.telegram.org/api/boost
+	//
+	// Use SetBoostPeer and GetBoostPeer helpers.
+	BoostPeer PeerClass
+	// Duration in months of the gifted Telegram Premium subscription¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/premium
+	Months int
+	// Slug of the Telegram Premium giftcode link¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/links#premium-giftcode-links
+	Slug string
+	// Three-letter ISO 4217 currency¹ code
+	//
+	// Links:
+	//  1) https://core.telegram.org/bots/payments#supported-currencies
+	//
+	// Use SetCurrency and GetCurrency helpers.
+	Currency string
+	// Total price in the smallest units of the currency (integer, not float/double). For
+	// example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in
+	// currencies.json¹, it shows the number of digits past the decimal point for each
+	// currency (2 for the majority of currencies).
+	//
+	// Links:
+	//  1) https://core.telegram.org/bots/payments/currencies.json
+	//
+	// Use SetAmount and GetAmount helpers.
+	Amount int64
+	// If set, the gift was made using the specified cryptocurrency.
+	//
+	// Use SetCryptoCurrency and GetCryptoCurrency helpers.
+	CryptoCurrency string
+	// If crypto_currency is set, contains the paid amount, in the smallest units of the
+	// cryptocurrency.
+	//
+	// Use SetCryptoAmount and GetCryptoAmount helpers.
+	CryptoAmount int64
+	// Message attached with the gift
+	//
+	// Use SetMessage and GetMessage helpers.
+	Message TextWithEntities
+}
+
+// MessageActionGiftCodeTypeID is TL type id of MessageActionGiftCode.
+const MessageActionGiftCodeTypeID = 0x56d03994
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionGiftCode) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionGiftCode.
+var (
+	_ bin.Encoder     = &MessageActionGiftCode{}
+	_ bin.Decoder     = &MessageActionGiftCode{}
+	_ bin.BareEncoder = &MessageActionGiftCode{}
+	_ bin.BareDecoder = &MessageActionGiftCode{}
+
+	_ MessageActionClass = &MessageActionGiftCode{}
+)
+
+func (m *MessageActionGiftCode) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.ViaGiveaway == false) {
+		return false
+	}
+	if !(m.Unclaimed == false) {
+		return false
+	}
+	if !(m.BoostPeer == nil) {
+		return false
+	}
+	if !(m.Months == 0) {
+		return false
+	}
+	if !(m.Slug == "") {
+		return false
+	}
+	if !(m.Currency == "") {
+		return false
+	}
+	if !(m.Amount == 0) {
+		return false
+	}
+	if !(m.CryptoCurrency == "") {
+		return false
+	}
+	if !(m.CryptoAmount == 0) {
+		return false
+	}
+	if !(m.Message.Zero()) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionGiftCode) String() string {
+	if m == nil {
+		return "MessageActionGiftCode(nil)"
+	}
+	type Alias MessageActionGiftCode
+	return fmt.Sprintf("MessageActionGiftCode%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionGiftCode from given interface.
+func (m *MessageActionGiftCode) FillFrom(from interface {
+	GetViaGiveaway() (value bool)
+	GetUnclaimed() (value bool)
+	GetBoostPeer() (value PeerClass, ok bool)
+	GetMonths() (value int)
+	GetSlug() (value string)
+	GetCurrency() (value string, ok bool)
+	GetAmount() (value int64, ok bool)
+	GetCryptoCurrency() (value string, ok bool)
+	GetCryptoAmount() (value int64, ok bool)
+	GetMessage() (value TextWithEntities, ok bool)
+}) {
+	m.ViaGiveaway = from.GetViaGiveaway()
+	m.Unclaimed = from.GetUnclaimed()
+	if val, ok := from.GetBoostPeer(); ok {
+		m.BoostPeer = val
+	}
+
+	m.Months = from.GetMonths()
+	m.Slug = from.GetSlug()
+	if val, ok := from.GetCurrency(); ok {
+		m.Currency = val
+	}
+
+	if val, ok := from.GetAmount(); ok {
+		m.Amount = val
+	}
+
+	if val, ok := from.GetCryptoCurrency(); ok {
+		m.CryptoCurrency = val
+	}
+
+	if val, ok := from.GetCryptoAmount(); ok {
+		m.CryptoAmount = val
+	}
+
+	if val, ok := from.GetMessage(); ok {
+		m.Message = val
+	}
+
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionGiftCode) TypeID() uint32 {
+	return MessageActionGiftCodeTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionGiftCode) TypeName() string {
+	return "messageActionGiftCode"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionGiftCode) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionGiftCode",
+		ID:   MessageActionGiftCodeTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "ViaGiveaway",
+			SchemaName: "via_giveaway",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "Unclaimed",
+			SchemaName: "unclaimed",
+			Null:       !m.Flags.Has(2),
+		},
+		{
+			Name:       "BoostPeer",
+			SchemaName: "boost_peer",
+			Null:       !m.Flags.Has(1),
+		},
+		{
+			Name:       "Months",
+			SchemaName: "months",
+		},
+		{
+			Name:       "Slug",
+			SchemaName: "slug",
+		},
+		{
+			Name:       "Currency",
+			SchemaName: "currency",
+			Null:       !m.Flags.Has(2),
+		},
+		{
+			Name:       "Amount",
+			SchemaName: "amount",
+			Null:       !m.Flags.Has(2),
+		},
+		{
+			Name:       "CryptoCurrency",
+			SchemaName: "crypto_currency",
+			Null:       !m.Flags.Has(3),
+		},
+		{
+			Name:       "CryptoAmount",
+			SchemaName: "crypto_amount",
+			Null:       !m.Flags.Has(3),
+		},
+		{
+			Name:       "Message",
+			SchemaName: "message",
+			Null:       !m.Flags.Has(4),
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionGiftCode) SetFlags() {
+	if !(m.ViaGiveaway == false) {
+		m.Flags.Set(0)
+	}
+	if !(m.Unclaimed == false) {
+		m.Flags.Set(2)
+	}
+	if !(m.BoostPeer == nil) {
+		m.Flags.Set(1)
+	}
+	if !(m.Currency == "") {
+		m.Flags.Set(2)
+	}
+	if !(m.Amount == 0) {
+		m.Flags.Set(2)
+	}
+	if !(m.CryptoCurrency == "") {
+		m.Flags.Set(3)
+	}
+	if !(m.CryptoAmount == 0) {
+		m.Flags.Set(3)
+	}
+	if !(m.Message.Zero()) {
+		m.Flags.Set(4)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionGiftCode) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiftCode#56d03994 as nil")
+	}
+	b.PutID(MessageActionGiftCodeTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionGiftCode) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiftCode#56d03994 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionGiftCode#56d03994: field flags: %w", err)
+	}
+	if m.Flags.Has(1) {
+		if m.BoostPeer == nil {
+			return fmt.Errorf("unable to encode messageActionGiftCode#56d03994: field boost_peer is nil")
+		}
+		if err := m.BoostPeer.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionGiftCode#56d03994: field boost_peer: %w", err)
+		}
+	}
+	b.PutInt(m.Months)
+	b.PutString(m.Slug)
+	if m.Flags.Has(2) {
+		b.PutString(m.Currency)
+	}
+	if m.Flags.Has(2) {
+		b.PutLong(m.Amount)
+	}
+	if m.Flags.Has(3) {
+		b.PutString(m.CryptoCurrency)
+	}
+	if m.Flags.Has(3) {
+		b.PutLong(m.CryptoAmount)
+	}
+	if m.Flags.Has(4) {
+		if err := m.Message.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionGiftCode#56d03994: field message: %w", err)
+		}
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionGiftCode) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiftCode#56d03994 to nil")
+	}
+	if err := b.ConsumeID(MessageActionGiftCodeTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionGiftCode) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiftCode#56d03994 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field flags: %w", err)
+		}
+	}
+	m.ViaGiveaway = m.Flags.Has(0)
+	m.Unclaimed = m.Flags.Has(2)
+	if m.Flags.Has(1) {
+		value, err := DecodePeer(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field boost_peer: %w", err)
+		}
+		m.BoostPeer = value
+	}
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field months: %w", err)
+		}
+		m.Months = value
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field slug: %w", err)
+		}
+		m.Slug = value
+	}
+	if m.Flags.Has(2) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field currency: %w", err)
+		}
+		m.Currency = value
+	}
+	if m.Flags.Has(2) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field amount: %w", err)
+		}
+		m.Amount = value
+	}
+	if m.Flags.Has(3) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field crypto_currency: %w", err)
+		}
+		m.CryptoCurrency = value
+	}
+	if m.Flags.Has(3) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field crypto_amount: %w", err)
+		}
+		m.CryptoAmount = value
+	}
+	if m.Flags.Has(4) {
+		if err := m.Message.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftCode#56d03994: field message: %w", err)
+		}
+	}
+	return nil
+}
+
+// SetViaGiveaway sets value of ViaGiveaway conditional field.
+func (m *MessageActionGiftCode) SetViaGiveaway(value bool) {
+	if value {
+		m.Flags.Set(0)
+		m.ViaGiveaway = true
+	} else {
+		m.Flags.Unset(0)
+		m.ViaGiveaway = false
+	}
+}
+
+// GetViaGiveaway returns value of ViaGiveaway conditional field.
+func (m *MessageActionGiftCode) GetViaGiveaway() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(0)
+}
+
+// SetUnclaimed sets value of Unclaimed conditional field.
+func (m *MessageActionGiftCode) SetUnclaimed(value bool) {
+	if value {
+		m.Flags.Set(2)
+		m.Unclaimed = true
+	} else {
+		m.Flags.Unset(2)
+		m.Unclaimed = false
+	}
+}
+
+// GetUnclaimed returns value of Unclaimed conditional field.
+func (m *MessageActionGiftCode) GetUnclaimed() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(2)
+}
+
+// SetBoostPeer sets value of BoostPeer conditional field.
+func (m *MessageActionGiftCode) SetBoostPeer(value PeerClass) {
+	m.Flags.Set(1)
+	m.BoostPeer = value
+}
+
+// GetBoostPeer returns value of BoostPeer conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftCode) GetBoostPeer() (value PeerClass, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(1) {
+		return value, false
+	}
+	return m.BoostPeer, true
+}
+
+// GetMonths returns value of Months field.
+func (m *MessageActionGiftCode) GetMonths() (value int) {
+	if m == nil {
+		return
+	}
+	return m.Months
+}
+
+// GetSlug returns value of Slug field.
+func (m *MessageActionGiftCode) GetSlug() (value string) {
+	if m == nil {
+		return
+	}
+	return m.Slug
+}
+
+// SetCurrency sets value of Currency conditional field.
+func (m *MessageActionGiftCode) SetCurrency(value string) {
+	m.Flags.Set(2)
+	m.Currency = value
+}
+
+// GetCurrency returns value of Currency conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftCode) GetCurrency() (value string, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(2) {
+		return value, false
+	}
+	return m.Currency, true
+}
+
+// SetAmount sets value of Amount conditional field.
+func (m *MessageActionGiftCode) SetAmount(value int64) {
+	m.Flags.Set(2)
+	m.Amount = value
+}
+
+// GetAmount returns value of Amount conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftCode) GetAmount() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(2) {
+		return value, false
+	}
+	return m.Amount, true
+}
+
+// SetCryptoCurrency sets value of CryptoCurrency conditional field.
+func (m *MessageActionGiftCode) SetCryptoCurrency(value string) {
+	m.Flags.Set(3)
+	m.CryptoCurrency = value
+}
+
+// GetCryptoCurrency returns value of CryptoCurrency conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftCode) GetCryptoCurrency() (value string, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(3) {
+		return value, false
+	}
+	return m.CryptoCurrency, true
+}
+
+// SetCryptoAmount sets value of CryptoAmount conditional field.
+func (m *MessageActionGiftCode) SetCryptoAmount(value int64) {
+	m.Flags.Set(3)
+	m.CryptoAmount = value
+}
+
+// GetCryptoAmount returns value of CryptoAmount conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftCode) GetCryptoAmount() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(3) {
+		return value, false
+	}
+	return m.CryptoAmount, true
+}
+
+// SetMessage sets value of Message conditional field.
+func (m *MessageActionGiftCode) SetMessage(value TextWithEntities) {
+	m.Flags.Set(4)
+	m.Message = value
+}
+
+// GetMessage returns value of Message conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftCode) GetMessage() (value TextWithEntities, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(4) {
+		return value, false
+	}
+	return m.Message, true
+}
+
+// MessageActionGiveawayLaunch represents TL type `messageActionGiveawayLaunch#a80f51e4`.
+// A giveaway¹ was started.
+//
+// Links:
+//  1. https://core.telegram.org/api/giveaways
+//
+// See https://core.telegram.org/constructor/messageActionGiveawayLaunch for reference.
+type MessageActionGiveawayLaunch struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// For Telegram Star giveaways¹, the total number of Telegram Stars being given away.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stars#star-giveaways
+	//
+	// Use SetStars and GetStars helpers.
+	Stars int64
+}
+
+// MessageActionGiveawayLaunchTypeID is TL type id of MessageActionGiveawayLaunch.
+const MessageActionGiveawayLaunchTypeID = 0xa80f51e4
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionGiveawayLaunch) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionGiveawayLaunch.
+var (
+	_ bin.Encoder     = &MessageActionGiveawayLaunch{}
+	_ bin.Decoder     = &MessageActionGiveawayLaunch{}
+	_ bin.BareEncoder = &MessageActionGiveawayLaunch{}
+	_ bin.BareDecoder = &MessageActionGiveawayLaunch{}
+
+	_ MessageActionClass = &MessageActionGiveawayLaunch{}
+)
+
+func (m *MessageActionGiveawayLaunch) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Stars == 0) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionGiveawayLaunch) String() string {
+	if m == nil {
+		return "MessageActionGiveawayLaunch(nil)"
+	}
+	type Alias MessageActionGiveawayLaunch
+	return fmt.Sprintf("MessageActionGiveawayLaunch%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionGiveawayLaunch from given interface.
+func (m *MessageActionGiveawayLaunch) FillFrom(from interface {
+	GetStars() (value int64, ok bool)
+}) {
+	if val, ok := from.GetStars(); ok {
+		m.Stars = val
+	}
+
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionGiveawayLaunch) TypeID() uint32 {
+	return MessageActionGiveawayLaunchTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionGiveawayLaunch) TypeName() string {
+	return "messageActionGiveawayLaunch"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionGiveawayLaunch) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionGiveawayLaunch",
+		ID:   MessageActionGiveawayLaunchTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Stars",
+			SchemaName: "stars",
+			Null:       !m.Flags.Has(0),
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionGiveawayLaunch) SetFlags() {
+	if !(m.Stars == 0) {
+		m.Flags.Set(0)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionGiveawayLaunch) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiveawayLaunch#a80f51e4 as nil")
+	}
+	b.PutID(MessageActionGiveawayLaunchTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionGiveawayLaunch) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiveawayLaunch#a80f51e4 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionGiveawayLaunch#a80f51e4: field flags: %w", err)
+	}
+	if m.Flags.Has(0) {
+		b.PutLong(m.Stars)
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionGiveawayLaunch) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiveawayLaunch#a80f51e4 to nil")
+	}
+	if err := b.ConsumeID(MessageActionGiveawayLaunchTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionGiveawayLaunch#a80f51e4: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionGiveawayLaunch) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiveawayLaunch#a80f51e4 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiveawayLaunch#a80f51e4: field flags: %w", err)
+		}
+	}
+	if m.Flags.Has(0) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiveawayLaunch#a80f51e4: field stars: %w", err)
+		}
+		m.Stars = value
+	}
+	return nil
+}
+
+// SetStars sets value of Stars conditional field.
+func (m *MessageActionGiveawayLaunch) SetStars(value int64) {
+	m.Flags.Set(0)
+	m.Stars = value
+}
+
+// GetStars returns value of Stars conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiveawayLaunch) GetStars() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.Stars, true
+}
+
+// MessageActionGiveawayResults represents TL type `messageActionGiveawayResults#87e2f155`.
+// A giveaway¹ has ended.
+//
+// Links:
+//  1. https://core.telegram.org/api/giveaways
+//
+// See https://core.telegram.org/constructor/messageActionGiveawayResults for reference.
+type MessageActionGiveawayResults struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// If set, this is a Telegram Star giveaway¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stars#star-giveaways
+	Stars bool
+	// Number of winners in the giveaway
+	WinnersCount int
+	// Number of undistributed prizes
+	UnclaimedCount int
+}
+
+// MessageActionGiveawayResultsTypeID is TL type id of MessageActionGiveawayResults.
+const MessageActionGiveawayResultsTypeID = 0x87e2f155
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionGiveawayResults) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionGiveawayResults.
+var (
+	_ bin.Encoder     = &MessageActionGiveawayResults{}
+	_ bin.Decoder     = &MessageActionGiveawayResults{}
+	_ bin.BareEncoder = &MessageActionGiveawayResults{}
+	_ bin.BareDecoder = &MessageActionGiveawayResults{}
+
+	_ MessageActionClass = &MessageActionGiveawayResults{}
+)
+
+func (m *MessageActionGiveawayResults) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Stars == false) {
+		return false
+	}
+	if !(m.WinnersCount == 0) {
+		return false
+	}
+	if !(m.UnclaimedCount == 0) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionGiveawayResults) String() string {
+	if m == nil {
+		return "MessageActionGiveawayResults(nil)"
+	}
+	type Alias MessageActionGiveawayResults
+	return fmt.Sprintf("MessageActionGiveawayResults%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionGiveawayResults from given interface.
+func (m *MessageActionGiveawayResults) FillFrom(from interface {
+	GetStars() (value bool)
+	GetWinnersCount() (value int)
+	GetUnclaimedCount() (value int)
+}) {
+	m.Stars = from.GetStars()
+	m.WinnersCount = from.GetWinnersCount()
+	m.UnclaimedCount = from.GetUnclaimedCount()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionGiveawayResults) TypeID() uint32 {
+	return MessageActionGiveawayResultsTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionGiveawayResults) TypeName() string {
+	return "messageActionGiveawayResults"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionGiveawayResults) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionGiveawayResults",
+		ID:   MessageActionGiveawayResultsTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Stars",
+			SchemaName: "stars",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "WinnersCount",
+			SchemaName: "winners_count",
+		},
+		{
+			Name:       "UnclaimedCount",
+			SchemaName: "unclaimed_count",
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionGiveawayResults) SetFlags() {
+	if !(m.Stars == false) {
+		m.Flags.Set(0)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionGiveawayResults) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiveawayResults#87e2f155 as nil")
+	}
+	b.PutID(MessageActionGiveawayResultsTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionGiveawayResults) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiveawayResults#87e2f155 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionGiveawayResults#87e2f155: field flags: %w", err)
+	}
+	b.PutInt(m.WinnersCount)
+	b.PutInt(m.UnclaimedCount)
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionGiveawayResults) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiveawayResults#87e2f155 to nil")
+	}
+	if err := b.ConsumeID(MessageActionGiveawayResultsTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionGiveawayResults#87e2f155: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionGiveawayResults) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiveawayResults#87e2f155 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiveawayResults#87e2f155: field flags: %w", err)
+		}
+	}
+	m.Stars = m.Flags.Has(0)
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiveawayResults#87e2f155: field winners_count: %w", err)
+		}
+		m.WinnersCount = value
+	}
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiveawayResults#87e2f155: field unclaimed_count: %w", err)
+		}
+		m.UnclaimedCount = value
+	}
+	return nil
+}
+
+// SetStars sets value of Stars conditional field.
+func (m *MessageActionGiveawayResults) SetStars(value bool) {
+	if value {
+		m.Flags.Set(0)
+		m.Stars = true
+	} else {
+		m.Flags.Unset(0)
+		m.Stars = false
+	}
+}
+
+// GetStars returns value of Stars conditional field.
+func (m *MessageActionGiveawayResults) GetStars() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(0)
+}
+
+// GetWinnersCount returns value of WinnersCount field.
+func (m *MessageActionGiveawayResults) GetWinnersCount() (value int) {
+	if m == nil {
+		return
+	}
+	return m.WinnersCount
+}
+
+// GetUnclaimedCount returns value of UnclaimedCount field.
+func (m *MessageActionGiveawayResults) GetUnclaimedCount() (value int) {
+	if m == nil {
+		return
+	}
+	return m.UnclaimedCount
+}
+
+// MessageActionBoostApply represents TL type `messageActionBoostApply#cc02aa6d`.
+// Some boosts »¹ were applied to the channel or supergroup.
+//
+// Links:
+//  1. https://core.telegram.org/api/boost
+//
+// See https://core.telegram.org/constructor/messageActionBoostApply for reference.
+type MessageActionBoostApply struct {
+	// Number of applied boosts¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/boost
+	Boosts int
+}
+
+// MessageActionBoostApplyTypeID is TL type id of MessageActionBoostApply.
+const MessageActionBoostApplyTypeID = 0xcc02aa6d
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionBoostApply) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionBoostApply.
+var (
+	_ bin.Encoder     = &MessageActionBoostApply{}
+	_ bin.Decoder     = &MessageActionBoostApply{}
+	_ bin.BareEncoder = &MessageActionBoostApply{}
+	_ bin.BareDecoder = &MessageActionBoostApply{}
+
+	_ MessageActionClass = &MessageActionBoostApply{}
+)
+
+func (m *MessageActionBoostApply) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Boosts == 0) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionBoostApply) String() string {
+	if m == nil {
+		return "MessageActionBoostApply(nil)"
+	}
+	type Alias MessageActionBoostApply
+	return fmt.Sprintf("MessageActionBoostApply%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionBoostApply from given interface.
+func (m *MessageActionBoostApply) FillFrom(from interface {
+	GetBoosts() (value int)
+}) {
+	m.Boosts = from.GetBoosts()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionBoostApply) TypeID() uint32 {
+	return MessageActionBoostApplyTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionBoostApply) TypeName() string {
+	return "messageActionBoostApply"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionBoostApply) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionBoostApply",
+		ID:   MessageActionBoostApplyTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Boosts",
+			SchemaName: "boosts",
+		},
+	}
+	return typ
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionBoostApply) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionBoostApply#cc02aa6d as nil")
+	}
+	b.PutID(MessageActionBoostApplyTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionBoostApply) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionBoostApply#cc02aa6d as nil")
+	}
+	b.PutInt(m.Boosts)
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionBoostApply) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionBoostApply#cc02aa6d to nil")
+	}
+	if err := b.ConsumeID(MessageActionBoostApplyTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionBoostApply#cc02aa6d: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionBoostApply) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionBoostApply#cc02aa6d to nil")
+	}
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionBoostApply#cc02aa6d: field boosts: %w", err)
+		}
+		m.Boosts = value
+	}
+	return nil
+}
+
+// GetBoosts returns value of Boosts field.
+func (m *MessageActionBoostApply) GetBoosts() (value int) {
+	if m == nil {
+		return
+	}
+	return m.Boosts
+}
+
+// MessageActionRequestedPeerSentMe represents TL type `messageActionRequestedPeerSentMe#93b31848`.
+// Contains info about one or more peers that the a user shared with the me (the bot)
+// after clicking on a keyboardButtonRequestPeer¹ button (service message received by
+// the bot).
+//
+// Links:
+//  1. https://core.telegram.org/constructor/keyboardButtonRequestPeer
+//
+// See https://core.telegram.org/constructor/messageActionRequestedPeerSentMe for reference.
+type MessageActionRequestedPeerSentMe struct {
+	// button_id contained in the keyboardButtonRequestPeer¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/keyboardButtonRequestPeer
+	ButtonID int
+	// Info about the shared peers.
+	Peers []RequestedPeerClass
+}
+
+// MessageActionRequestedPeerSentMeTypeID is TL type id of MessageActionRequestedPeerSentMe.
+const MessageActionRequestedPeerSentMeTypeID = 0x93b31848
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionRequestedPeerSentMe) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionRequestedPeerSentMe.
+var (
+	_ bin.Encoder     = &MessageActionRequestedPeerSentMe{}
+	_ bin.Decoder     = &MessageActionRequestedPeerSentMe{}
+	_ bin.BareEncoder = &MessageActionRequestedPeerSentMe{}
+	_ bin.BareDecoder = &MessageActionRequestedPeerSentMe{}
+
+	_ MessageActionClass = &MessageActionRequestedPeerSentMe{}
+)
+
+func (m *MessageActionRequestedPeerSentMe) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.ButtonID == 0) {
+		return false
+	}
+	if !(m.Peers == nil) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionRequestedPeerSentMe) String() string {
+	if m == nil {
+		return "MessageActionRequestedPeerSentMe(nil)"
+	}
+	type Alias MessageActionRequestedPeerSentMe
+	return fmt.Sprintf("MessageActionRequestedPeerSentMe%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionRequestedPeerSentMe from given interface.
+func (m *MessageActionRequestedPeerSentMe) FillFrom(from interface {
+	GetButtonID() (value int)
+	GetPeers() (value []RequestedPeerClass)
+}) {
+	m.ButtonID = from.GetButtonID()
+	m.Peers = from.GetPeers()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionRequestedPeerSentMe) TypeID() uint32 {
+	return MessageActionRequestedPeerSentMeTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionRequestedPeerSentMe) TypeName() string {
+	return "messageActionRequestedPeerSentMe"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionRequestedPeerSentMe) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionRequestedPeerSentMe",
+		ID:   MessageActionRequestedPeerSentMeTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "ButtonID",
+			SchemaName: "button_id",
+		},
+		{
+			Name:       "Peers",
+			SchemaName: "peers",
+		},
+	}
+	return typ
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionRequestedPeerSentMe) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionRequestedPeerSentMe#93b31848 as nil")
+	}
+	b.PutID(MessageActionRequestedPeerSentMeTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionRequestedPeerSentMe) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionRequestedPeerSentMe#93b31848 as nil")
+	}
+	b.PutInt(m.ButtonID)
+	b.PutVectorHeader(len(m.Peers))
+	for idx, v := range m.Peers {
+		if v == nil {
+			return fmt.Errorf("unable to encode messageActionRequestedPeerSentMe#93b31848: field peers element with index %d is nil", idx)
+		}
+		if err := v.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionRequestedPeerSentMe#93b31848: field peers element with index %d: %w", idx, err)
+		}
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionRequestedPeerSentMe) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionRequestedPeerSentMe#93b31848 to nil")
+	}
+	if err := b.ConsumeID(MessageActionRequestedPeerSentMeTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionRequestedPeerSentMe#93b31848: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionRequestedPeerSentMe) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionRequestedPeerSentMe#93b31848 to nil")
+	}
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionRequestedPeerSentMe#93b31848: field button_id: %w", err)
+		}
+		m.ButtonID = value
+	}
+	{
+		headerLen, err := b.VectorHeader()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionRequestedPeerSentMe#93b31848: field peers: %w", err)
+		}
+
+		if headerLen > 0 {
+			m.Peers = make([]RequestedPeerClass, 0, headerLen%bin.PreallocateLimit)
+		}
+		for idx := 0; idx < headerLen; idx++ {
+			value, err := DecodeRequestedPeer(b)
+			if err != nil {
+				return fmt.Errorf("unable to decode messageActionRequestedPeerSentMe#93b31848: field peers: %w", err)
+			}
+			m.Peers = append(m.Peers, value)
+		}
+	}
+	return nil
+}
+
+// GetButtonID returns value of ButtonID field.
+func (m *MessageActionRequestedPeerSentMe) GetButtonID() (value int) {
+	if m == nil {
+		return
+	}
+	return m.ButtonID
+}
+
+// GetPeers returns value of Peers field.
+func (m *MessageActionRequestedPeerSentMe) GetPeers() (value []RequestedPeerClass) {
+	if m == nil {
+		return
+	}
+	return m.Peers
+}
+
+// MapPeers returns field Peers wrapped in RequestedPeerClassArray helper.
+func (m *MessageActionRequestedPeerSentMe) MapPeers() (value RequestedPeerClassArray) {
+	return RequestedPeerClassArray(m.Peers)
+}
+
+// MessageActionPaymentRefunded represents TL type `messageActionPaymentRefunded#41b3e202`.
+// Describes a payment refund (service message received by both users and bots).
+//
+// See https://core.telegram.org/constructor/messageActionPaymentRefunded for reference.
+type MessageActionPaymentRefunded struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// Identifier of the peer that returned the funds.
+	Peer PeerClass
+	// Currency, XTR for Telegram Stars.
+	Currency string
+	// Total price in the smallest units of the currency (integer, not float/double). For
+	// example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in
+	// currencies.json¹, it shows the number of digits past the decimal point for each
+	// currency (2 for the majority of currencies).
+	//
+	// Links:
+	//  1) https://core.telegram.org/bots/payments/currencies.json
+	TotalAmount int64
+	// Bot specified invoice payload (only received by bots).
+	//
+	// Use SetPayload and GetPayload helpers.
+	Payload []byte
+	// Provider payment identifier
+	Charge PaymentCharge
+}
+
+// MessageActionPaymentRefundedTypeID is TL type id of MessageActionPaymentRefunded.
+const MessageActionPaymentRefundedTypeID = 0x41b3e202
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionPaymentRefunded) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionPaymentRefunded.
+var (
+	_ bin.Encoder     = &MessageActionPaymentRefunded{}
+	_ bin.Decoder     = &MessageActionPaymentRefunded{}
+	_ bin.BareEncoder = &MessageActionPaymentRefunded{}
+	_ bin.BareDecoder = &MessageActionPaymentRefunded{}
+
+	_ MessageActionClass = &MessageActionPaymentRefunded{}
+)
+
+func (m *MessageActionPaymentRefunded) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Peer == nil) {
+		return false
+	}
+	if !(m.Currency == "") {
+		return false
+	}
+	if !(m.TotalAmount == 0) {
+		return false
+	}
+	if !(m.Payload == nil) {
+		return false
+	}
+	if !(m.Charge.Zero()) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionPaymentRefunded) String() string {
+	if m == nil {
+		return "MessageActionPaymentRefunded(nil)"
+	}
+	type Alias MessageActionPaymentRefunded
+	return fmt.Sprintf("MessageActionPaymentRefunded%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionPaymentRefunded from given interface.
+func (m *MessageActionPaymentRefunded) FillFrom(from interface {
+	GetPeer() (value PeerClass)
+	GetCurrency() (value string)
+	GetTotalAmount() (value int64)
+	GetPayload() (value []byte, ok bool)
+	GetCharge() (value PaymentCharge)
+}) {
+	m.Peer = from.GetPeer()
+	m.Currency = from.GetCurrency()
+	m.TotalAmount = from.GetTotalAmount()
+	if val, ok := from.GetPayload(); ok {
+		m.Payload = val
+	}
+
+	m.Charge = from.GetCharge()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionPaymentRefunded) TypeID() uint32 {
+	return MessageActionPaymentRefundedTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionPaymentRefunded) TypeName() string {
+	return "messageActionPaymentRefunded"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionPaymentRefunded) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionPaymentRefunded",
+		ID:   MessageActionPaymentRefundedTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Peer",
+			SchemaName: "peer",
+		},
+		{
+			Name:       "Currency",
+			SchemaName: "currency",
+		},
+		{
+			Name:       "TotalAmount",
+			SchemaName: "total_amount",
+		},
+		{
+			Name:       "Payload",
+			SchemaName: "payload",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "Charge",
+			SchemaName: "charge",
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionPaymentRefunded) SetFlags() {
+	if !(m.Payload == nil) {
+		m.Flags.Set(0)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionPaymentRefunded) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionPaymentRefunded#41b3e202 as nil")
+	}
+	b.PutID(MessageActionPaymentRefundedTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionPaymentRefunded) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionPaymentRefunded#41b3e202 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionPaymentRefunded#41b3e202: field flags: %w", err)
+	}
+	if m.Peer == nil {
+		return fmt.Errorf("unable to encode messageActionPaymentRefunded#41b3e202: field peer is nil")
+	}
+	if err := m.Peer.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionPaymentRefunded#41b3e202: field peer: %w", err)
+	}
+	b.PutString(m.Currency)
+	b.PutLong(m.TotalAmount)
+	if m.Flags.Has(0) {
+		b.PutBytes(m.Payload)
+	}
+	if err := m.Charge.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionPaymentRefunded#41b3e202: field charge: %w", err)
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionPaymentRefunded) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionPaymentRefunded#41b3e202 to nil")
+	}
+	if err := b.ConsumeID(MessageActionPaymentRefundedTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionPaymentRefunded) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionPaymentRefunded#41b3e202 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: field flags: %w", err)
+		}
+	}
+	{
+		value, err := DecodePeer(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: field peer: %w", err)
+		}
+		m.Peer = value
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: field currency: %w", err)
+		}
+		m.Currency = value
+	}
+	{
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: field total_amount: %w", err)
+		}
+		m.TotalAmount = value
+	}
+	if m.Flags.Has(0) {
+		value, err := b.Bytes()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: field payload: %w", err)
+		}
+		m.Payload = value
+	}
+	{
+		if err := m.Charge.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionPaymentRefunded#41b3e202: field charge: %w", err)
+		}
+	}
+	return nil
+}
+
 // GetPeer returns value of Peer field.
-func (m *MessageActionRequestedPeer) GetPeer() (value PeerClass) {
+func (m *MessageActionPaymentRefunded) GetPeer() (value PeerClass) {
 	if m == nil {
 		return
 	}
 	return m.Peer
+}
+
+// GetCurrency returns value of Currency field.
+func (m *MessageActionPaymentRefunded) GetCurrency() (value string) {
+	if m == nil {
+		return
+	}
+	return m.Currency
+}
+
+// GetTotalAmount returns value of TotalAmount field.
+func (m *MessageActionPaymentRefunded) GetTotalAmount() (value int64) {
+	if m == nil {
+		return
+	}
+	return m.TotalAmount
+}
+
+// SetPayload sets value of Payload conditional field.
+func (m *MessageActionPaymentRefunded) SetPayload(value []byte) {
+	m.Flags.Set(0)
+	m.Payload = value
+}
+
+// GetPayload returns value of Payload conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionPaymentRefunded) GetPayload() (value []byte, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.Payload, true
+}
+
+// GetCharge returns value of Charge field.
+func (m *MessageActionPaymentRefunded) GetCharge() (value PaymentCharge) {
+	if m == nil {
+		return
+	}
+	return m.Charge
+}
+
+// MessageActionGiftStars represents TL type `messageActionGiftStars#45d5b021`.
+// You gifted or were gifted some Telegram Stars¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/stars
+//
+// See https://core.telegram.org/constructor/messageActionGiftStars for reference.
+type MessageActionGiftStars struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// Three-letter ISO 4217 currency¹ code
+	//
+	// Links:
+	//  1) https://core.telegram.org/bots/payments#supported-currencies
+	Currency string
+	// Price of the gift in the smallest units of the currency (integer, not float/double).
+	// For example, for a price of US$ 1.45 pass amount = 145. See the exp parameter in
+	// currencies.json¹, it shows the number of digits past the decimal point for each
+	// currency (2 for the majority of currencies).
+	//
+	// Links:
+	//  1) https://core.telegram.org/bots/payments/currencies.json
+	Amount int64
+	// Amount of gifted stars
+	Stars int64
+	// If the gift was bought using a cryptocurrency, the cryptocurrency name.
+	//
+	// Use SetCryptoCurrency and GetCryptoCurrency helpers.
+	CryptoCurrency string
+	// If the gift was bought using a cryptocurrency, price of the gift in the smallest units
+	// of a cryptocurrency.
+	//
+	// Use SetCryptoAmount and GetCryptoAmount helpers.
+	CryptoAmount int64
+	// Identifier of the transaction, only visible to the receiver of the gift.
+	//
+	// Use SetTransactionID and GetTransactionID helpers.
+	TransactionID string
+}
+
+// MessageActionGiftStarsTypeID is TL type id of MessageActionGiftStars.
+const MessageActionGiftStarsTypeID = 0x45d5b021
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionGiftStars) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionGiftStars.
+var (
+	_ bin.Encoder     = &MessageActionGiftStars{}
+	_ bin.Decoder     = &MessageActionGiftStars{}
+	_ bin.BareEncoder = &MessageActionGiftStars{}
+	_ bin.BareDecoder = &MessageActionGiftStars{}
+
+	_ MessageActionClass = &MessageActionGiftStars{}
+)
+
+func (m *MessageActionGiftStars) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Currency == "") {
+		return false
+	}
+	if !(m.Amount == 0) {
+		return false
+	}
+	if !(m.Stars == 0) {
+		return false
+	}
+	if !(m.CryptoCurrency == "") {
+		return false
+	}
+	if !(m.CryptoAmount == 0) {
+		return false
+	}
+	if !(m.TransactionID == "") {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionGiftStars) String() string {
+	if m == nil {
+		return "MessageActionGiftStars(nil)"
+	}
+	type Alias MessageActionGiftStars
+	return fmt.Sprintf("MessageActionGiftStars%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionGiftStars from given interface.
+func (m *MessageActionGiftStars) FillFrom(from interface {
+	GetCurrency() (value string)
+	GetAmount() (value int64)
+	GetStars() (value int64)
+	GetCryptoCurrency() (value string, ok bool)
+	GetCryptoAmount() (value int64, ok bool)
+	GetTransactionID() (value string, ok bool)
+}) {
+	m.Currency = from.GetCurrency()
+	m.Amount = from.GetAmount()
+	m.Stars = from.GetStars()
+	if val, ok := from.GetCryptoCurrency(); ok {
+		m.CryptoCurrency = val
+	}
+
+	if val, ok := from.GetCryptoAmount(); ok {
+		m.CryptoAmount = val
+	}
+
+	if val, ok := from.GetTransactionID(); ok {
+		m.TransactionID = val
+	}
+
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionGiftStars) TypeID() uint32 {
+	return MessageActionGiftStarsTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionGiftStars) TypeName() string {
+	return "messageActionGiftStars"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionGiftStars) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionGiftStars",
+		ID:   MessageActionGiftStarsTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Currency",
+			SchemaName: "currency",
+		},
+		{
+			Name:       "Amount",
+			SchemaName: "amount",
+		},
+		{
+			Name:       "Stars",
+			SchemaName: "stars",
+		},
+		{
+			Name:       "CryptoCurrency",
+			SchemaName: "crypto_currency",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "CryptoAmount",
+			SchemaName: "crypto_amount",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "TransactionID",
+			SchemaName: "transaction_id",
+			Null:       !m.Flags.Has(1),
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionGiftStars) SetFlags() {
+	if !(m.CryptoCurrency == "") {
+		m.Flags.Set(0)
+	}
+	if !(m.CryptoAmount == 0) {
+		m.Flags.Set(0)
+	}
+	if !(m.TransactionID == "") {
+		m.Flags.Set(1)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionGiftStars) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiftStars#45d5b021 as nil")
+	}
+	b.PutID(MessageActionGiftStarsTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionGiftStars) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionGiftStars#45d5b021 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionGiftStars#45d5b021: field flags: %w", err)
+	}
+	b.PutString(m.Currency)
+	b.PutLong(m.Amount)
+	b.PutLong(m.Stars)
+	if m.Flags.Has(0) {
+		b.PutString(m.CryptoCurrency)
+	}
+	if m.Flags.Has(0) {
+		b.PutLong(m.CryptoAmount)
+	}
+	if m.Flags.Has(1) {
+		b.PutString(m.TransactionID)
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionGiftStars) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiftStars#45d5b021 to nil")
+	}
+	if err := b.ConsumeID(MessageActionGiftStarsTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionGiftStars) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionGiftStars#45d5b021 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field flags: %w", err)
+		}
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field currency: %w", err)
+		}
+		m.Currency = value
+	}
+	{
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field amount: %w", err)
+		}
+		m.Amount = value
+	}
+	{
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field stars: %w", err)
+		}
+		m.Stars = value
+	}
+	if m.Flags.Has(0) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field crypto_currency: %w", err)
+		}
+		m.CryptoCurrency = value
+	}
+	if m.Flags.Has(0) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field crypto_amount: %w", err)
+		}
+		m.CryptoAmount = value
+	}
+	if m.Flags.Has(1) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionGiftStars#45d5b021: field transaction_id: %w", err)
+		}
+		m.TransactionID = value
+	}
+	return nil
+}
+
+// GetCurrency returns value of Currency field.
+func (m *MessageActionGiftStars) GetCurrency() (value string) {
+	if m == nil {
+		return
+	}
+	return m.Currency
+}
+
+// GetAmount returns value of Amount field.
+func (m *MessageActionGiftStars) GetAmount() (value int64) {
+	if m == nil {
+		return
+	}
+	return m.Amount
+}
+
+// GetStars returns value of Stars field.
+func (m *MessageActionGiftStars) GetStars() (value int64) {
+	if m == nil {
+		return
+	}
+	return m.Stars
+}
+
+// SetCryptoCurrency sets value of CryptoCurrency conditional field.
+func (m *MessageActionGiftStars) SetCryptoCurrency(value string) {
+	m.Flags.Set(0)
+	m.CryptoCurrency = value
+}
+
+// GetCryptoCurrency returns value of CryptoCurrency conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftStars) GetCryptoCurrency() (value string, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.CryptoCurrency, true
+}
+
+// SetCryptoAmount sets value of CryptoAmount conditional field.
+func (m *MessageActionGiftStars) SetCryptoAmount(value int64) {
+	m.Flags.Set(0)
+	m.CryptoAmount = value
+}
+
+// GetCryptoAmount returns value of CryptoAmount conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftStars) GetCryptoAmount() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(0) {
+		return value, false
+	}
+	return m.CryptoAmount, true
+}
+
+// SetTransactionID sets value of TransactionID conditional field.
+func (m *MessageActionGiftStars) SetTransactionID(value string) {
+	m.Flags.Set(1)
+	m.TransactionID = value
+}
+
+// GetTransactionID returns value of TransactionID conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionGiftStars) GetTransactionID() (value string, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(1) {
+		return value, false
+	}
+	return m.TransactionID, true
+}
+
+// MessageActionPrizeStars represents TL type `messageActionPrizeStars#b00c47a2`.
+// You won some Telegram Stars¹ in a Telegram Star giveaway »².
+//
+// Links:
+//  1. https://core.telegram.org/api/stars
+//  2. https://core.telegram.org/api/giveaways#star-giveaways
+//
+// See https://core.telegram.org/constructor/messageActionPrizeStars for reference.
+type MessageActionPrizeStars struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// If set, this indicates the reverse transaction that refunds the remaining stars to the
+	// creator of a giveaway if, when the giveaway ends, the number of members in the channel
+	// is smaller than the number of winners in the giveaway.
+	Unclaimed bool
+	// The number of Telegram Stars you won
+	Stars int64
+	// ID of the telegram star transaction.
+	TransactionID string
+	// Identifier of the peer that was automatically boosted by the winners of the giveaway.
+	BoostPeer PeerClass
+	// ID of the message containing the messageMediaGiveaway¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/messageMediaGiveaway
+	GiveawayMsgID int
+}
+
+// MessageActionPrizeStarsTypeID is TL type id of MessageActionPrizeStars.
+const MessageActionPrizeStarsTypeID = 0xb00c47a2
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionPrizeStars) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionPrizeStars.
+var (
+	_ bin.Encoder     = &MessageActionPrizeStars{}
+	_ bin.Decoder     = &MessageActionPrizeStars{}
+	_ bin.BareEncoder = &MessageActionPrizeStars{}
+	_ bin.BareDecoder = &MessageActionPrizeStars{}
+
+	_ MessageActionClass = &MessageActionPrizeStars{}
+)
+
+func (m *MessageActionPrizeStars) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Unclaimed == false) {
+		return false
+	}
+	if !(m.Stars == 0) {
+		return false
+	}
+	if !(m.TransactionID == "") {
+		return false
+	}
+	if !(m.BoostPeer == nil) {
+		return false
+	}
+	if !(m.GiveawayMsgID == 0) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionPrizeStars) String() string {
+	if m == nil {
+		return "MessageActionPrizeStars(nil)"
+	}
+	type Alias MessageActionPrizeStars
+	return fmt.Sprintf("MessageActionPrizeStars%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionPrizeStars from given interface.
+func (m *MessageActionPrizeStars) FillFrom(from interface {
+	GetUnclaimed() (value bool)
+	GetStars() (value int64)
+	GetTransactionID() (value string)
+	GetBoostPeer() (value PeerClass)
+	GetGiveawayMsgID() (value int)
+}) {
+	m.Unclaimed = from.GetUnclaimed()
+	m.Stars = from.GetStars()
+	m.TransactionID = from.GetTransactionID()
+	m.BoostPeer = from.GetBoostPeer()
+	m.GiveawayMsgID = from.GetGiveawayMsgID()
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionPrizeStars) TypeID() uint32 {
+	return MessageActionPrizeStarsTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionPrizeStars) TypeName() string {
+	return "messageActionPrizeStars"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionPrizeStars) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionPrizeStars",
+		ID:   MessageActionPrizeStarsTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Unclaimed",
+			SchemaName: "unclaimed",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "Stars",
+			SchemaName: "stars",
+		},
+		{
+			Name:       "TransactionID",
+			SchemaName: "transaction_id",
+		},
+		{
+			Name:       "BoostPeer",
+			SchemaName: "boost_peer",
+		},
+		{
+			Name:       "GiveawayMsgID",
+			SchemaName: "giveaway_msg_id",
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionPrizeStars) SetFlags() {
+	if !(m.Unclaimed == false) {
+		m.Flags.Set(0)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionPrizeStars) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionPrizeStars#b00c47a2 as nil")
+	}
+	b.PutID(MessageActionPrizeStarsTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionPrizeStars) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionPrizeStars#b00c47a2 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionPrizeStars#b00c47a2: field flags: %w", err)
+	}
+	b.PutLong(m.Stars)
+	b.PutString(m.TransactionID)
+	if m.BoostPeer == nil {
+		return fmt.Errorf("unable to encode messageActionPrizeStars#b00c47a2: field boost_peer is nil")
+	}
+	if err := m.BoostPeer.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionPrizeStars#b00c47a2: field boost_peer: %w", err)
+	}
+	b.PutInt(m.GiveawayMsgID)
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionPrizeStars) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionPrizeStars#b00c47a2 to nil")
+	}
+	if err := b.ConsumeID(MessageActionPrizeStarsTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionPrizeStars#b00c47a2: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionPrizeStars) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionPrizeStars#b00c47a2 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionPrizeStars#b00c47a2: field flags: %w", err)
+		}
+	}
+	m.Unclaimed = m.Flags.Has(0)
+	{
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPrizeStars#b00c47a2: field stars: %w", err)
+		}
+		m.Stars = value
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPrizeStars#b00c47a2: field transaction_id: %w", err)
+		}
+		m.TransactionID = value
+	}
+	{
+		value, err := DecodePeer(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPrizeStars#b00c47a2: field boost_peer: %w", err)
+		}
+		m.BoostPeer = value
+	}
+	{
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionPrizeStars#b00c47a2: field giveaway_msg_id: %w", err)
+		}
+		m.GiveawayMsgID = value
+	}
+	return nil
+}
+
+// SetUnclaimed sets value of Unclaimed conditional field.
+func (m *MessageActionPrizeStars) SetUnclaimed(value bool) {
+	if value {
+		m.Flags.Set(0)
+		m.Unclaimed = true
+	} else {
+		m.Flags.Unset(0)
+		m.Unclaimed = false
+	}
+}
+
+// GetUnclaimed returns value of Unclaimed conditional field.
+func (m *MessageActionPrizeStars) GetUnclaimed() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(0)
+}
+
+// GetStars returns value of Stars field.
+func (m *MessageActionPrizeStars) GetStars() (value int64) {
+	if m == nil {
+		return
+	}
+	return m.Stars
+}
+
+// GetTransactionID returns value of TransactionID field.
+func (m *MessageActionPrizeStars) GetTransactionID() (value string) {
+	if m == nil {
+		return
+	}
+	return m.TransactionID
+}
+
+// GetBoostPeer returns value of BoostPeer field.
+func (m *MessageActionPrizeStars) GetBoostPeer() (value PeerClass) {
+	if m == nil {
+		return
+	}
+	return m.BoostPeer
+}
+
+// GetGiveawayMsgID returns value of GiveawayMsgID field.
+func (m *MessageActionPrizeStars) GetGiveawayMsgID() (value int) {
+	if m == nil {
+		return
+	}
+	return m.GiveawayMsgID
+}
+
+// MessageActionStarGift represents TL type `messageActionStarGift#d8f4f0a7`.
+// You received a gift, see here »¹ for more info.
+//
+// Links:
+//  1. https://core.telegram.org/api/gifts
+//
+// See https://core.telegram.org/constructor/messageActionStarGift for reference.
+type MessageActionStarGift struct {
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags bin.Fields
+	// If set, the name of the sender of the gift will be hidden if the destination user
+	// decides to display the gift on their profile
+	NameHidden bool
+	// Whether this gift was added to the destination user's profile (may be toggled using
+	// payments.saveStarGift¹ and fetched using payments.getUserStarGifts²)
+	//
+	// Links:
+	//  1) https://core.telegram.org/method/payments.saveStarGift
+	//  2) https://core.telegram.org/method/payments.getUserStarGifts
+	Saved bool
+	// Whether this gift was converted to Telegram Stars¹ and cannot be displayed on the
+	// profile anymore.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stars
+	Converted bool
+	// Upgraded field of MessageActionStarGift.
+	Upgraded bool
+	// Refunded field of MessageActionStarGift.
+	Refunded bool
+	// CanUpgrade field of MessageActionStarGift.
+	CanUpgrade bool
+	// Info about the gift
+	Gift StarGiftClass
+	// Additional message from the sender of the gift
+	//
+	// Use SetMessage and GetMessage helpers.
+	Message TextWithEntities
+	// The receiver of this gift may convert it to this many Telegram Stars, instead of
+	// displaying it on their profile page.convert_stars will be equal to stars only if the
+	// gift was bought using recently bought Telegram Stars, otherwise it will be less than
+	// stars.
+	//
+	// Use SetConvertStars and GetConvertStars helpers.
+	ConvertStars int64
+	// UpgradeMsgID field of MessageActionStarGift.
+	//
+	// Use SetUpgradeMsgID and GetUpgradeMsgID helpers.
+	UpgradeMsgID int
+	// UpgradeStars field of MessageActionStarGift.
+	//
+	// Use SetUpgradeStars and GetUpgradeStars helpers.
+	UpgradeStars int64
+}
+
+// MessageActionStarGiftTypeID is TL type id of MessageActionStarGift.
+const MessageActionStarGiftTypeID = 0xd8f4f0a7
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionStarGift) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionStarGift.
+var (
+	_ bin.Encoder     = &MessageActionStarGift{}
+	_ bin.Decoder     = &MessageActionStarGift{}
+	_ bin.BareEncoder = &MessageActionStarGift{}
+	_ bin.BareDecoder = &MessageActionStarGift{}
+
+	_ MessageActionClass = &MessageActionStarGift{}
+)
+
+func (m *MessageActionStarGift) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.NameHidden == false) {
+		return false
+	}
+	if !(m.Saved == false) {
+		return false
+	}
+	if !(m.Converted == false) {
+		return false
+	}
+	if !(m.Upgraded == false) {
+		return false
+	}
+	if !(m.Refunded == false) {
+		return false
+	}
+	if !(m.CanUpgrade == false) {
+		return false
+	}
+	if !(m.Gift == nil) {
+		return false
+	}
+	if !(m.Message.Zero()) {
+		return false
+	}
+	if !(m.ConvertStars == 0) {
+		return false
+	}
+	if !(m.UpgradeMsgID == 0) {
+		return false
+	}
+	if !(m.UpgradeStars == 0) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionStarGift) String() string {
+	if m == nil {
+		return "MessageActionStarGift(nil)"
+	}
+	type Alias MessageActionStarGift
+	return fmt.Sprintf("MessageActionStarGift%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionStarGift from given interface.
+func (m *MessageActionStarGift) FillFrom(from interface {
+	GetNameHidden() (value bool)
+	GetSaved() (value bool)
+	GetConverted() (value bool)
+	GetUpgraded() (value bool)
+	GetRefunded() (value bool)
+	GetCanUpgrade() (value bool)
+	GetGift() (value StarGiftClass)
+	GetMessage() (value TextWithEntities, ok bool)
+	GetConvertStars() (value int64, ok bool)
+	GetUpgradeMsgID() (value int, ok bool)
+	GetUpgradeStars() (value int64, ok bool)
+}) {
+	m.NameHidden = from.GetNameHidden()
+	m.Saved = from.GetSaved()
+	m.Converted = from.GetConverted()
+	m.Upgraded = from.GetUpgraded()
+	m.Refunded = from.GetRefunded()
+	m.CanUpgrade = from.GetCanUpgrade()
+	m.Gift = from.GetGift()
+	if val, ok := from.GetMessage(); ok {
+		m.Message = val
+	}
+
+	if val, ok := from.GetConvertStars(); ok {
+		m.ConvertStars = val
+	}
+
+	if val, ok := from.GetUpgradeMsgID(); ok {
+		m.UpgradeMsgID = val
+	}
+
+	if val, ok := from.GetUpgradeStars(); ok {
+		m.UpgradeStars = val
+	}
+
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionStarGift) TypeID() uint32 {
+	return MessageActionStarGiftTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionStarGift) TypeName() string {
+	return "messageActionStarGift"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionStarGift) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionStarGift",
+		ID:   MessageActionStarGiftTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "NameHidden",
+			SchemaName: "name_hidden",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "Saved",
+			SchemaName: "saved",
+			Null:       !m.Flags.Has(2),
+		},
+		{
+			Name:       "Converted",
+			SchemaName: "converted",
+			Null:       !m.Flags.Has(3),
+		},
+		{
+			Name:       "Upgraded",
+			SchemaName: "upgraded",
+			Null:       !m.Flags.Has(5),
+		},
+		{
+			Name:       "Refunded",
+			SchemaName: "refunded",
+			Null:       !m.Flags.Has(9),
+		},
+		{
+			Name:       "CanUpgrade",
+			SchemaName: "can_upgrade",
+			Null:       !m.Flags.Has(10),
+		},
+		{
+			Name:       "Gift",
+			SchemaName: "gift",
+		},
+		{
+			Name:       "Message",
+			SchemaName: "message",
+			Null:       !m.Flags.Has(1),
+		},
+		{
+			Name:       "ConvertStars",
+			SchemaName: "convert_stars",
+			Null:       !m.Flags.Has(4),
+		},
+		{
+			Name:       "UpgradeMsgID",
+			SchemaName: "upgrade_msg_id",
+			Null:       !m.Flags.Has(5),
+		},
+		{
+			Name:       "UpgradeStars",
+			SchemaName: "upgrade_stars",
+			Null:       !m.Flags.Has(8),
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionStarGift) SetFlags() {
+	if !(m.NameHidden == false) {
+		m.Flags.Set(0)
+	}
+	if !(m.Saved == false) {
+		m.Flags.Set(2)
+	}
+	if !(m.Converted == false) {
+		m.Flags.Set(3)
+	}
+	if !(m.Upgraded == false) {
+		m.Flags.Set(5)
+	}
+	if !(m.Refunded == false) {
+		m.Flags.Set(9)
+	}
+	if !(m.CanUpgrade == false) {
+		m.Flags.Set(10)
+	}
+	if !(m.Message.Zero()) {
+		m.Flags.Set(1)
+	}
+	if !(m.ConvertStars == 0) {
+		m.Flags.Set(4)
+	}
+	if !(m.UpgradeMsgID == 0) {
+		m.Flags.Set(5)
+	}
+	if !(m.UpgradeStars == 0) {
+		m.Flags.Set(8)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionStarGift) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionStarGift#d8f4f0a7 as nil")
+	}
+	b.PutID(MessageActionStarGiftTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionStarGift) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionStarGift#d8f4f0a7 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionStarGift#d8f4f0a7: field flags: %w", err)
+	}
+	if m.Gift == nil {
+		return fmt.Errorf("unable to encode messageActionStarGift#d8f4f0a7: field gift is nil")
+	}
+	if err := m.Gift.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionStarGift#d8f4f0a7: field gift: %w", err)
+	}
+	if m.Flags.Has(1) {
+		if err := m.Message.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messageActionStarGift#d8f4f0a7: field message: %w", err)
+		}
+	}
+	if m.Flags.Has(4) {
+		b.PutLong(m.ConvertStars)
+	}
+	if m.Flags.Has(5) {
+		b.PutInt(m.UpgradeMsgID)
+	}
+	if m.Flags.Has(8) {
+		b.PutLong(m.UpgradeStars)
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionStarGift) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionStarGift#d8f4f0a7 to nil")
+	}
+	if err := b.ConsumeID(MessageActionStarGiftTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionStarGift) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionStarGift#d8f4f0a7 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: field flags: %w", err)
+		}
+	}
+	m.NameHidden = m.Flags.Has(0)
+	m.Saved = m.Flags.Has(2)
+	m.Converted = m.Flags.Has(3)
+	m.Upgraded = m.Flags.Has(5)
+	m.Refunded = m.Flags.Has(9)
+	m.CanUpgrade = m.Flags.Has(10)
+	{
+		value, err := DecodeStarGift(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: field gift: %w", err)
+		}
+		m.Gift = value
+	}
+	if m.Flags.Has(1) {
+		if err := m.Message.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: field message: %w", err)
+		}
+	}
+	if m.Flags.Has(4) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: field convert_stars: %w", err)
+		}
+		m.ConvertStars = value
+	}
+	if m.Flags.Has(5) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: field upgrade_msg_id: %w", err)
+		}
+		m.UpgradeMsgID = value
+	}
+	if m.Flags.Has(8) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGift#d8f4f0a7: field upgrade_stars: %w", err)
+		}
+		m.UpgradeStars = value
+	}
+	return nil
+}
+
+// SetNameHidden sets value of NameHidden conditional field.
+func (m *MessageActionStarGift) SetNameHidden(value bool) {
+	if value {
+		m.Flags.Set(0)
+		m.NameHidden = true
+	} else {
+		m.Flags.Unset(0)
+		m.NameHidden = false
+	}
+}
+
+// GetNameHidden returns value of NameHidden conditional field.
+func (m *MessageActionStarGift) GetNameHidden() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(0)
+}
+
+// SetSaved sets value of Saved conditional field.
+func (m *MessageActionStarGift) SetSaved(value bool) {
+	if value {
+		m.Flags.Set(2)
+		m.Saved = true
+	} else {
+		m.Flags.Unset(2)
+		m.Saved = false
+	}
+}
+
+// GetSaved returns value of Saved conditional field.
+func (m *MessageActionStarGift) GetSaved() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(2)
+}
+
+// SetConverted sets value of Converted conditional field.
+func (m *MessageActionStarGift) SetConverted(value bool) {
+	if value {
+		m.Flags.Set(3)
+		m.Converted = true
+	} else {
+		m.Flags.Unset(3)
+		m.Converted = false
+	}
+}
+
+// GetConverted returns value of Converted conditional field.
+func (m *MessageActionStarGift) GetConverted() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(3)
+}
+
+// SetUpgraded sets value of Upgraded conditional field.
+func (m *MessageActionStarGift) SetUpgraded(value bool) {
+	if value {
+		m.Flags.Set(5)
+		m.Upgraded = true
+	} else {
+		m.Flags.Unset(5)
+		m.Upgraded = false
+	}
+}
+
+// GetUpgraded returns value of Upgraded conditional field.
+func (m *MessageActionStarGift) GetUpgraded() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(5)
+}
+
+// SetRefunded sets value of Refunded conditional field.
+func (m *MessageActionStarGift) SetRefunded(value bool) {
+	if value {
+		m.Flags.Set(9)
+		m.Refunded = true
+	} else {
+		m.Flags.Unset(9)
+		m.Refunded = false
+	}
+}
+
+// GetRefunded returns value of Refunded conditional field.
+func (m *MessageActionStarGift) GetRefunded() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(9)
+}
+
+// SetCanUpgrade sets value of CanUpgrade conditional field.
+func (m *MessageActionStarGift) SetCanUpgrade(value bool) {
+	if value {
+		m.Flags.Set(10)
+		m.CanUpgrade = true
+	} else {
+		m.Flags.Unset(10)
+		m.CanUpgrade = false
+	}
+}
+
+// GetCanUpgrade returns value of CanUpgrade conditional field.
+func (m *MessageActionStarGift) GetCanUpgrade() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(10)
+}
+
+// GetGift returns value of Gift field.
+func (m *MessageActionStarGift) GetGift() (value StarGiftClass) {
+	if m == nil {
+		return
+	}
+	return m.Gift
+}
+
+// SetMessage sets value of Message conditional field.
+func (m *MessageActionStarGift) SetMessage(value TextWithEntities) {
+	m.Flags.Set(1)
+	m.Message = value
+}
+
+// GetMessage returns value of Message conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionStarGift) GetMessage() (value TextWithEntities, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(1) {
+		return value, false
+	}
+	return m.Message, true
+}
+
+// SetConvertStars sets value of ConvertStars conditional field.
+func (m *MessageActionStarGift) SetConvertStars(value int64) {
+	m.Flags.Set(4)
+	m.ConvertStars = value
+}
+
+// GetConvertStars returns value of ConvertStars conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionStarGift) GetConvertStars() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(4) {
+		return value, false
+	}
+	return m.ConvertStars, true
+}
+
+// SetUpgradeMsgID sets value of UpgradeMsgID conditional field.
+func (m *MessageActionStarGift) SetUpgradeMsgID(value int) {
+	m.Flags.Set(5)
+	m.UpgradeMsgID = value
+}
+
+// GetUpgradeMsgID returns value of UpgradeMsgID conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionStarGift) GetUpgradeMsgID() (value int, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(5) {
+		return value, false
+	}
+	return m.UpgradeMsgID, true
+}
+
+// SetUpgradeStars sets value of UpgradeStars conditional field.
+func (m *MessageActionStarGift) SetUpgradeStars(value int64) {
+	m.Flags.Set(8)
+	m.UpgradeStars = value
+}
+
+// GetUpgradeStars returns value of UpgradeStars conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionStarGift) GetUpgradeStars() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(8) {
+		return value, false
+	}
+	return m.UpgradeStars, true
+}
+
+// MessageActionStarGiftUnique represents TL type `messageActionStarGiftUnique#26077b99`.
+//
+// See https://core.telegram.org/constructor/messageActionStarGiftUnique for reference.
+type MessageActionStarGiftUnique struct {
+	// Flags field of MessageActionStarGiftUnique.
+	Flags bin.Fields
+	// Upgrade field of MessageActionStarGiftUnique.
+	Upgrade bool
+	// Transferred field of MessageActionStarGiftUnique.
+	Transferred bool
+	// Saved field of MessageActionStarGiftUnique.
+	Saved bool
+	// Refunded field of MessageActionStarGiftUnique.
+	Refunded bool
+	// Gift field of MessageActionStarGiftUnique.
+	Gift StarGiftClass
+	// CanExportAt field of MessageActionStarGiftUnique.
+	//
+	// Use SetCanExportAt and GetCanExportAt helpers.
+	CanExportAt int
+	// TransferStars field of MessageActionStarGiftUnique.
+	//
+	// Use SetTransferStars and GetTransferStars helpers.
+	TransferStars int64
+}
+
+// MessageActionStarGiftUniqueTypeID is TL type id of MessageActionStarGiftUnique.
+const MessageActionStarGiftUniqueTypeID = 0x26077b99
+
+// construct implements constructor of MessageActionClass.
+func (m MessageActionStarGiftUnique) construct() MessageActionClass { return &m }
+
+// Ensuring interfaces in compile-time for MessageActionStarGiftUnique.
+var (
+	_ bin.Encoder     = &MessageActionStarGiftUnique{}
+	_ bin.Decoder     = &MessageActionStarGiftUnique{}
+	_ bin.BareEncoder = &MessageActionStarGiftUnique{}
+	_ bin.BareDecoder = &MessageActionStarGiftUnique{}
+
+	_ MessageActionClass = &MessageActionStarGiftUnique{}
+)
+
+func (m *MessageActionStarGiftUnique) Zero() bool {
+	if m == nil {
+		return true
+	}
+	if !(m.Flags.Zero()) {
+		return false
+	}
+	if !(m.Upgrade == false) {
+		return false
+	}
+	if !(m.Transferred == false) {
+		return false
+	}
+	if !(m.Saved == false) {
+		return false
+	}
+	if !(m.Refunded == false) {
+		return false
+	}
+	if !(m.Gift == nil) {
+		return false
+	}
+	if !(m.CanExportAt == 0) {
+		return false
+	}
+	if !(m.TransferStars == 0) {
+		return false
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (m *MessageActionStarGiftUnique) String() string {
+	if m == nil {
+		return "MessageActionStarGiftUnique(nil)"
+	}
+	type Alias MessageActionStarGiftUnique
+	return fmt.Sprintf("MessageActionStarGiftUnique%+v", Alias(*m))
+}
+
+// FillFrom fills MessageActionStarGiftUnique from given interface.
+func (m *MessageActionStarGiftUnique) FillFrom(from interface {
+	GetUpgrade() (value bool)
+	GetTransferred() (value bool)
+	GetSaved() (value bool)
+	GetRefunded() (value bool)
+	GetGift() (value StarGiftClass)
+	GetCanExportAt() (value int, ok bool)
+	GetTransferStars() (value int64, ok bool)
+}) {
+	m.Upgrade = from.GetUpgrade()
+	m.Transferred = from.GetTransferred()
+	m.Saved = from.GetSaved()
+	m.Refunded = from.GetRefunded()
+	m.Gift = from.GetGift()
+	if val, ok := from.GetCanExportAt(); ok {
+		m.CanExportAt = val
+	}
+
+	if val, ok := from.GetTransferStars(); ok {
+		m.TransferStars = val
+	}
+
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*MessageActionStarGiftUnique) TypeID() uint32 {
+	return MessageActionStarGiftUniqueTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*MessageActionStarGiftUnique) TypeName() string {
+	return "messageActionStarGiftUnique"
+}
+
+// TypeInfo returns info about TL type.
+func (m *MessageActionStarGiftUnique) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "messageActionStarGiftUnique",
+		ID:   MessageActionStarGiftUniqueTypeID,
+	}
+	if m == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{
+		{
+			Name:       "Upgrade",
+			SchemaName: "upgrade",
+			Null:       !m.Flags.Has(0),
+		},
+		{
+			Name:       "Transferred",
+			SchemaName: "transferred",
+			Null:       !m.Flags.Has(1),
+		},
+		{
+			Name:       "Saved",
+			SchemaName: "saved",
+			Null:       !m.Flags.Has(2),
+		},
+		{
+			Name:       "Refunded",
+			SchemaName: "refunded",
+			Null:       !m.Flags.Has(5),
+		},
+		{
+			Name:       "Gift",
+			SchemaName: "gift",
+		},
+		{
+			Name:       "CanExportAt",
+			SchemaName: "can_export_at",
+			Null:       !m.Flags.Has(3),
+		},
+		{
+			Name:       "TransferStars",
+			SchemaName: "transfer_stars",
+			Null:       !m.Flags.Has(4),
+		},
+	}
+	return typ
+}
+
+// SetFlags sets flags for non-zero fields.
+func (m *MessageActionStarGiftUnique) SetFlags() {
+	if !(m.Upgrade == false) {
+		m.Flags.Set(0)
+	}
+	if !(m.Transferred == false) {
+		m.Flags.Set(1)
+	}
+	if !(m.Saved == false) {
+		m.Flags.Set(2)
+	}
+	if !(m.Refunded == false) {
+		m.Flags.Set(5)
+	}
+	if !(m.CanExportAt == 0) {
+		m.Flags.Set(3)
+	}
+	if !(m.TransferStars == 0) {
+		m.Flags.Set(4)
+	}
+}
+
+// Encode implements bin.Encoder.
+func (m *MessageActionStarGiftUnique) Encode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionStarGiftUnique#26077b99 as nil")
+	}
+	b.PutID(MessageActionStarGiftUniqueTypeID)
+	return m.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (m *MessageActionStarGiftUnique) EncodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't encode messageActionStarGiftUnique#26077b99 as nil")
+	}
+	m.SetFlags()
+	if err := m.Flags.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionStarGiftUnique#26077b99: field flags: %w", err)
+	}
+	if m.Gift == nil {
+		return fmt.Errorf("unable to encode messageActionStarGiftUnique#26077b99: field gift is nil")
+	}
+	if err := m.Gift.Encode(b); err != nil {
+		return fmt.Errorf("unable to encode messageActionStarGiftUnique#26077b99: field gift: %w", err)
+	}
+	if m.Flags.Has(3) {
+		b.PutInt(m.CanExportAt)
+	}
+	if m.Flags.Has(4) {
+		b.PutLong(m.TransferStars)
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (m *MessageActionStarGiftUnique) Decode(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionStarGiftUnique#26077b99 to nil")
+	}
+	if err := b.ConsumeID(MessageActionStarGiftUniqueTypeID); err != nil {
+		return fmt.Errorf("unable to decode messageActionStarGiftUnique#26077b99: %w", err)
+	}
+	return m.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (m *MessageActionStarGiftUnique) DecodeBare(b *bin.Buffer) error {
+	if m == nil {
+		return fmt.Errorf("can't decode messageActionStarGiftUnique#26077b99 to nil")
+	}
+	{
+		if err := m.Flags.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGiftUnique#26077b99: field flags: %w", err)
+		}
+	}
+	m.Upgrade = m.Flags.Has(0)
+	m.Transferred = m.Flags.Has(1)
+	m.Saved = m.Flags.Has(2)
+	m.Refunded = m.Flags.Has(5)
+	{
+		value, err := DecodeStarGift(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGiftUnique#26077b99: field gift: %w", err)
+		}
+		m.Gift = value
+	}
+	if m.Flags.Has(3) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGiftUnique#26077b99: field can_export_at: %w", err)
+		}
+		m.CanExportAt = value
+	}
+	if m.Flags.Has(4) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messageActionStarGiftUnique#26077b99: field transfer_stars: %w", err)
+		}
+		m.TransferStars = value
+	}
+	return nil
+}
+
+// SetUpgrade sets value of Upgrade conditional field.
+func (m *MessageActionStarGiftUnique) SetUpgrade(value bool) {
+	if value {
+		m.Flags.Set(0)
+		m.Upgrade = true
+	} else {
+		m.Flags.Unset(0)
+		m.Upgrade = false
+	}
+}
+
+// GetUpgrade returns value of Upgrade conditional field.
+func (m *MessageActionStarGiftUnique) GetUpgrade() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(0)
+}
+
+// SetTransferred sets value of Transferred conditional field.
+func (m *MessageActionStarGiftUnique) SetTransferred(value bool) {
+	if value {
+		m.Flags.Set(1)
+		m.Transferred = true
+	} else {
+		m.Flags.Unset(1)
+		m.Transferred = false
+	}
+}
+
+// GetTransferred returns value of Transferred conditional field.
+func (m *MessageActionStarGiftUnique) GetTransferred() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(1)
+}
+
+// SetSaved sets value of Saved conditional field.
+func (m *MessageActionStarGiftUnique) SetSaved(value bool) {
+	if value {
+		m.Flags.Set(2)
+		m.Saved = true
+	} else {
+		m.Flags.Unset(2)
+		m.Saved = false
+	}
+}
+
+// GetSaved returns value of Saved conditional field.
+func (m *MessageActionStarGiftUnique) GetSaved() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(2)
+}
+
+// SetRefunded sets value of Refunded conditional field.
+func (m *MessageActionStarGiftUnique) SetRefunded(value bool) {
+	if value {
+		m.Flags.Set(5)
+		m.Refunded = true
+	} else {
+		m.Flags.Unset(5)
+		m.Refunded = false
+	}
+}
+
+// GetRefunded returns value of Refunded conditional field.
+func (m *MessageActionStarGiftUnique) GetRefunded() (value bool) {
+	if m == nil {
+		return
+	}
+	return m.Flags.Has(5)
+}
+
+// GetGift returns value of Gift field.
+func (m *MessageActionStarGiftUnique) GetGift() (value StarGiftClass) {
+	if m == nil {
+		return
+	}
+	return m.Gift
+}
+
+// SetCanExportAt sets value of CanExportAt conditional field.
+func (m *MessageActionStarGiftUnique) SetCanExportAt(value int) {
+	m.Flags.Set(3)
+	m.CanExportAt = value
+}
+
+// GetCanExportAt returns value of CanExportAt conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionStarGiftUnique) GetCanExportAt() (value int, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(3) {
+		return value, false
+	}
+	return m.CanExportAt, true
+}
+
+// SetTransferStars sets value of TransferStars conditional field.
+func (m *MessageActionStarGiftUnique) SetTransferStars(value int64) {
+	m.Flags.Set(4)
+	m.TransferStars = value
+}
+
+// GetTransferStars returns value of TransferStars conditional field and
+// boolean which is true if field was set.
+func (m *MessageActionStarGiftUnique) GetTransferStars() (value int64, ok bool) {
+	if m == nil {
+		return
+	}
+	if !m.Flags.Has(4) {
+		return value, false
+	}
+	return m.TransferStars, true
 }
 
 // MessageActionClassName is schema name of MessageActionClass.
@@ -6417,12 +10313,12 @@ const MessageActionClassName = "MessageAction"
 //	case *tg.MessageActionPinMessage: // messageActionPinMessage#94bd38ed
 //	case *tg.MessageActionHistoryClear: // messageActionHistoryClear#9fbab604
 //	case *tg.MessageActionGameScore: // messageActionGameScore#92a72876
-//	case *tg.MessageActionPaymentSentMe: // messageActionPaymentSentMe#8f31b327
-//	case *tg.MessageActionPaymentSent: // messageActionPaymentSent#96163f56
+//	case *tg.MessageActionPaymentSentMe: // messageActionPaymentSentMe#ffa00ccc
+//	case *tg.MessageActionPaymentSent: // messageActionPaymentSent#c624b16e
 //	case *tg.MessageActionPhoneCall: // messageActionPhoneCall#80e11a7f
 //	case *tg.MessageActionScreenshotTaken: // messageActionScreenshotTaken#4792929b
 //	case *tg.MessageActionCustomAction: // messageActionCustomAction#fae69f56
-//	case *tg.MessageActionBotAllowed: // messageActionBotAllowed#abe9affe
+//	case *tg.MessageActionBotAllowed: // messageActionBotAllowed#c516d679
 //	case *tg.MessageActionSecureValuesSentMe: // messageActionSecureValuesSentMe#1b287353
 //	case *tg.MessageActionSecureValuesSent: // messageActionSecureValuesSent#d95c6154
 //	case *tg.MessageActionContactSignUp: // messageActionContactSignUp#f3f25f76
@@ -6435,12 +10331,22 @@ const MessageActionClassName = "MessageAction"
 //	case *tg.MessageActionChatJoinedByRequest: // messageActionChatJoinedByRequest#ebbca3cb
 //	case *tg.MessageActionWebViewDataSentMe: // messageActionWebViewDataSentMe#47dd8079
 //	case *tg.MessageActionWebViewDataSent: // messageActionWebViewDataSent#b4c38cb5
-//	case *tg.MessageActionGiftPremium: // messageActionGiftPremium#aba0f5c6
+//	case *tg.MessageActionGiftPremium: // messageActionGiftPremium#6c6274fa
 //	case *tg.MessageActionTopicCreate: // messageActionTopicCreate#d999256
 //	case *tg.MessageActionTopicEdit: // messageActionTopicEdit#c0944820
 //	case *tg.MessageActionSuggestProfilePhoto: // messageActionSuggestProfilePhoto#57de635e
-//	case *tg.MessageActionAttachMenuBotAllowed: // messageActionAttachMenuBotAllowed#e7e75f97
-//	case *tg.MessageActionRequestedPeer: // messageActionRequestedPeer#fe77345d
+//	case *tg.MessageActionRequestedPeer: // messageActionRequestedPeer#31518e9b
+//	case *tg.MessageActionSetChatWallPaper: // messageActionSetChatWallPaper#5060a3f4
+//	case *tg.MessageActionGiftCode: // messageActionGiftCode#56d03994
+//	case *tg.MessageActionGiveawayLaunch: // messageActionGiveawayLaunch#a80f51e4
+//	case *tg.MessageActionGiveawayResults: // messageActionGiveawayResults#87e2f155
+//	case *tg.MessageActionBoostApply: // messageActionBoostApply#cc02aa6d
+//	case *tg.MessageActionRequestedPeerSentMe: // messageActionRequestedPeerSentMe#93b31848
+//	case *tg.MessageActionPaymentRefunded: // messageActionPaymentRefunded#41b3e202
+//	case *tg.MessageActionGiftStars: // messageActionGiftStars#45d5b021
+//	case *tg.MessageActionPrizeStars: // messageActionPrizeStars#b00c47a2
+//	case *tg.MessageActionStarGift: // messageActionStarGift#d8f4f0a7
+//	case *tg.MessageActionStarGiftUnique: // messageActionStarGiftUnique#26077b99
 //	default: panic(v)
 //	}
 type MessageActionClass interface {
@@ -6568,14 +10474,14 @@ func DecodeMessageAction(buf *bin.Buffer) (MessageActionClass, error) {
 		}
 		return &v, nil
 	case MessageActionPaymentSentMeTypeID:
-		// Decoding messageActionPaymentSentMe#8f31b327.
+		// Decoding messageActionPaymentSentMe#ffa00ccc.
 		v := MessageActionPaymentSentMe{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
 		}
 		return &v, nil
 	case MessageActionPaymentSentTypeID:
-		// Decoding messageActionPaymentSent#96163f56.
+		// Decoding messageActionPaymentSent#c624b16e.
 		v := MessageActionPaymentSent{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
@@ -6603,7 +10509,7 @@ func DecodeMessageAction(buf *bin.Buffer) (MessageActionClass, error) {
 		}
 		return &v, nil
 	case MessageActionBotAllowedTypeID:
-		// Decoding messageActionBotAllowed#abe9affe.
+		// Decoding messageActionBotAllowed#c516d679.
 		v := MessageActionBotAllowed{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
@@ -6694,7 +10600,7 @@ func DecodeMessageAction(buf *bin.Buffer) (MessageActionClass, error) {
 		}
 		return &v, nil
 	case MessageActionGiftPremiumTypeID:
-		// Decoding messageActionGiftPremium#aba0f5c6.
+		// Decoding messageActionGiftPremium#6c6274fa.
 		v := MessageActionGiftPremium{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
@@ -6721,16 +10627,86 @@ func DecodeMessageAction(buf *bin.Buffer) (MessageActionClass, error) {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
 		}
 		return &v, nil
-	case MessageActionAttachMenuBotAllowedTypeID:
-		// Decoding messageActionAttachMenuBotAllowed#e7e75f97.
-		v := MessageActionAttachMenuBotAllowed{}
+	case MessageActionRequestedPeerTypeID:
+		// Decoding messageActionRequestedPeer#31518e9b.
+		v := MessageActionRequestedPeer{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
 		}
 		return &v, nil
-	case MessageActionRequestedPeerTypeID:
-		// Decoding messageActionRequestedPeer#fe77345d.
-		v := MessageActionRequestedPeer{}
+	case MessageActionSetChatWallPaperTypeID:
+		// Decoding messageActionSetChatWallPaper#5060a3f4.
+		v := MessageActionSetChatWallPaper{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionGiftCodeTypeID:
+		// Decoding messageActionGiftCode#56d03994.
+		v := MessageActionGiftCode{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionGiveawayLaunchTypeID:
+		// Decoding messageActionGiveawayLaunch#a80f51e4.
+		v := MessageActionGiveawayLaunch{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionGiveawayResultsTypeID:
+		// Decoding messageActionGiveawayResults#87e2f155.
+		v := MessageActionGiveawayResults{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionBoostApplyTypeID:
+		// Decoding messageActionBoostApply#cc02aa6d.
+		v := MessageActionBoostApply{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionRequestedPeerSentMeTypeID:
+		// Decoding messageActionRequestedPeerSentMe#93b31848.
+		v := MessageActionRequestedPeerSentMe{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionPaymentRefundedTypeID:
+		// Decoding messageActionPaymentRefunded#41b3e202.
+		v := MessageActionPaymentRefunded{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionGiftStarsTypeID:
+		// Decoding messageActionGiftStars#45d5b021.
+		v := MessageActionGiftStars{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionPrizeStarsTypeID:
+		// Decoding messageActionPrizeStars#b00c47a2.
+		v := MessageActionPrizeStars{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionStarGiftTypeID:
+		// Decoding messageActionStarGift#d8f4f0a7.
+		v := MessageActionStarGift{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
+		}
+		return &v, nil
+	case MessageActionStarGiftUniqueTypeID:
+		// Decoding messageActionStarGiftUnique#26077b99.
+		v := MessageActionStarGiftUnique{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode MessageActionClass: %w", err)
 		}

@@ -191,10 +191,12 @@ func (m *MessageEntityUnknown) GetLength() (value int) {
 }
 
 // MessageEntityMention represents TL type `messageEntityMention#fa04579d`.
-// Message entity mentioning¹ the current user
+// Message entity mentioning¹ a user by @username; messageEntityMentionName² can also
+// be used to mention users by their ID.
 //
 // Links:
 //  1. https://core.telegram.org/api/mentions
+//  2. https://core.telegram.org/constructor/messageEntityMentionName
 //
 // See https://core.telegram.org/constructor/messageEntityMention for reference.
 type MessageEntityMention struct {
@@ -1662,11 +1664,15 @@ func (m *MessageEntityPre) GetLanguage() (value string) {
 // MessageEntityTextURL represents TL type `messageEntityTextUrl#76a6d327`.
 // Message entity representing a text url¹: for in-text urls like https://google.com²
 // use messageEntityUrl³.
+// Note that an additional confirmation popup with the full URL must be displayed to the
+// user before opening this link, unless the domain satisfies the conditions specified in
+// the domain whitelist documentation »¹.
 //
 // Links:
 //  1. https://google.com
 //  2. https://google.com
 //  3. https://core.telegram.org/constructor/messageEntityUrl
+//  4. https://core.telegram.org/api/config#whitelisted-domains
 //
 // See https://core.telegram.org/constructor/messageEntityTextUrl for reference.
 type MessageEntityTextURL struct {

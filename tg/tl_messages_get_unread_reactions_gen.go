@@ -36,11 +36,17 @@ var (
 //
 // See https://core.telegram.org/method/messages.getUnreadReactions for reference.
 type MessagesGetUnreadReactionsRequest struct {
-	// Flags field of MessagesGetUnreadReactionsRequest.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
 	// Peer
 	Peer InputPeerClass
-	// TopMsgID field of MessagesGetUnreadReactionsRequest.
+	// If set, considers only reactions to messages within the specified forum topic¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/forum#forum-topics
 	//
 	// Use SetTopMsgID and GetTopMsgID helpers.
 	TopMsgID int
@@ -378,6 +384,10 @@ func (g *MessagesGetUnreadReactionsRequest) GetMinID() (value int) {
 
 // MessagesGetUnreadReactions invokes method messages.getUnreadReactions#3223495b returning error if any.
 // Get unread reactions to messages you sent
+//
+// Possible errors:
+//
+//	400 PEER_ID_INVALID: The provided peer id is invalid.
 //
 // See https://core.telegram.org/method/messages.getUnreadReactions for reference.
 func (c *Client) MessagesGetUnreadReactions(ctx context.Context, request *MessagesGetUnreadReactionsRequest) (MessagesMessagesClass, error) {

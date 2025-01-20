@@ -32,12 +32,13 @@ var (
 )
 
 // ChannelsGetForumTopicsByIDRequest represents TL type `channels.getForumTopicsByID#b0831eb9`.
+// Get forum topics by their ID
 //
 // See https://core.telegram.org/method/channels.getForumTopicsByID for reference.
 type ChannelsGetForumTopicsByIDRequest struct {
-	// Channel field of ChannelsGetForumTopicsByIDRequest.
+	// Forum
 	Channel InputChannelClass
-	// Topics field of ChannelsGetForumTopicsByIDRequest.
+	// Topic IDs
 	Topics []int
 }
 
@@ -211,6 +212,13 @@ func (g *ChannelsGetForumTopicsByIDRequest) GetChannelAsNotEmpty() (NotEmptyInpu
 }
 
 // ChannelsGetForumTopicsByID invokes method channels.getForumTopicsByID#b0831eb9 returning error if any.
+// Get forum topics by their ID
+//
+// Possible errors:
+//
+//	400 CHANNEL_FORUM_MISSING: This supergroup is not a forum.
+//	400 CHANNEL_INVALID: The provided channel is invalid.
+//	400 TOPICS_EMPTY: You specified no topic IDs.
 //
 // See https://core.telegram.org/method/channels.getForumTopicsByID for reference.
 func (c *Client) ChannelsGetForumTopicsByID(ctx context.Context, request *ChannelsGetForumTopicsByIDRequest) (*MessagesForumTopics, error) {

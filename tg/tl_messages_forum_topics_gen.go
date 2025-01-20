@@ -32,24 +32,49 @@ var (
 )
 
 // MessagesForumTopics represents TL type `messages.forumTopics#367617d3`.
+// Contains information about multiple forum topics¹
+//
+// Links:
+//  1. https://core.telegram.org/api/forum#forum-topics
 //
 // See https://core.telegram.org/constructor/messages.forumTopics for reference.
 type MessagesForumTopics struct {
-	// Flags field of MessagesForumTopics.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// OrderByCreateDate field of MessagesForumTopics.
+	// Whether the returned topics are ordered by creation date; if set, pagination by
+	// offset_date should use forumTopic¹.date; otherwise topics are ordered by the last
+	// message date, so paginate by the date of the message² referenced by forumTopic³
+	// top_message.
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/forumTopic
+	//  2) https://core.telegram.org/type/Message
+	//  3) https://core.telegram.org/constructor/forumTopic
 	OrderByCreateDate bool
-	// Count field of MessagesForumTopics.
+	// Total number of topics matching query; may be more than the topics contained in topics
+	// in which case pagination¹ is required.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/offsets
 	Count int
-	// Topics field of MessagesForumTopics.
+	// Forum topics
 	Topics []ForumTopicClass
-	// Messages field of MessagesForumTopics.
+	// Related messages (contains the messages mentioned by forumTopic¹.top_message).
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/forumTopic
 	Messages []MessageClass
-	// Chats field of MessagesForumTopics.
+	// Related chats
 	Chats []ChatClass
-	// Users field of MessagesForumTopics.
+	// Related users
 	Users []UserClass
-	// Pts field of MessagesForumTopics.
+	// Event count after generation¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/updates
 	Pts int
 }
 

@@ -14,35 +14,33 @@ jobs:
       matrix:
         flags: [""]
         go:
-          - 1.18
-          - 1.19
+          - "1.21"
+          - "1.22"
         arch:
           - amd64
         runner:
           - ubuntu-latest
           - macos-latest
         include:
-          - arch: 386
-            go: 1.19
-            runner: ubuntu-latest
-
           - arch: amd64
             runner: windows-latest
-            go: 1.19
+            go: "1.22"
             flags: "-p=1"
 
           - arch: amd64
-            go: 1.19
+            go: "1.22"
             runner: ubuntu-latest
             flags: "-race"
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
+          cache: false
 
       - name: Get Go environment
         id: go-env
@@ -50,7 +48,7 @@ jobs:
           echo "::set-output name=cache::$(go env GOCACHE)"
           echo "::set-output name=modcache::$(go env GOMODCACHE)"
       - name: Set up cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ steps.go-env.outputs.cache }}

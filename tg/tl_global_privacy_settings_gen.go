@@ -31,7 +31,7 @@ var (
 	_ = tdjson.Encoder{}
 )
 
-// GlobalPrivacySettings represents TL type `globalPrivacySettings#bea2f424`.
+// GlobalPrivacySettings represents TL type `globalPrivacySettings#734c4ccb`.
 // Global privacy settings
 //
 // See https://core.telegram.org/constructor/globalPrivacySettings for reference.
@@ -42,13 +42,54 @@ type GlobalPrivacySettings struct {
 	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
 	// Whether to archive and mute new chats from non-contacts
-	//
-	// Use SetArchiveAndMuteNewNoncontactPeers and GetArchiveAndMuteNewNoncontactPeers helpers.
 	ArchiveAndMuteNewNoncontactPeers bool
+	// Whether unmuted chats will be kept in the Archive chat list when they get a new
+	// message.
+	KeepArchivedUnmuted bool
+	// Whether unmuted chats that are always included or pinned in a folder¹, will be kept
+	// in the Archive chat list when they get a new message. Ignored if keep_archived_unmuted
+	// is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/folders
+	KeepArchivedFolders bool
+	// If this flag is set, the inputPrivacyKeyStatusTimestamp¹ key will also apply to the
+	// ability to use messages.getOutboxReadDate² on messages sent to us. Meaning, users
+	// that cannot see our exact last online date due to the current value of the
+	// inputPrivacyKeyStatusTimestamp³ key will receive a 403 USER_PRIVACY_RESTRICTED error
+	// when invoking messages.getOutboxReadDate⁴ to fetch the exact read date of a message
+	// they sent to us. The userFull⁵.read_dates_private flag will be set for users that
+	// have this flag enabled.
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/inputPrivacyKeyStatusTimestamp
+	//  2) https://core.telegram.org/method/messages.getOutboxReadDate
+	//  3) https://core.telegram.org/constructor/inputPrivacyKeyStatusTimestamp
+	//  4) https://core.telegram.org/method/messages.getOutboxReadDate
+	//  5) https://core.telegram.org/constructor/userFull
+	HideReadMarks bool
+	// If set, only users that have a premium account, are in our contact list, or already
+	// have a private chat with us can write to us; a 403 PRIVACY_PREMIUM_REQUIRED error will
+	// be emitted otherwise.  The userFull¹.contact_require_premium flag will be set for
+	// users that have this flag enabled.  To check whether we can write to a user with this
+	// flag enabled, if we haven't yet cached all the required information (for example we
+	// don't have the userFull² or history of all users while displaying the chat list in
+	// the sharing UI) the users.getIsPremiumRequiredToContact³ method may be invoked,
+	// passing the list of users currently visible in the UI, returning a list of booleans
+	// that directly specify whether we can or cannot write to each user. Premium⁴ users
+	// only, non-Premium users will receive a PREMIUM_ACCOUNT_REQUIRED error when trying to
+	// enable this flag.
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/userFull
+	//  2) https://core.telegram.org/constructor/userFull
+	//  3) https://core.telegram.org/method/users.getIsPremiumRequiredToContact
+	//  4) https://core.telegram.org/api/premium
+	NewNoncontactPeersRequirePremium bool
 }
 
 // GlobalPrivacySettingsTypeID is TL type id of GlobalPrivacySettings.
-const GlobalPrivacySettingsTypeID = 0xbea2f424
+const GlobalPrivacySettingsTypeID = 0x734c4ccb
 
 // Ensuring interfaces in compile-time for GlobalPrivacySettings.
 var (
@@ -68,6 +109,18 @@ func (g *GlobalPrivacySettings) Zero() bool {
 	if !(g.ArchiveAndMuteNewNoncontactPeers == false) {
 		return false
 	}
+	if !(g.KeepArchivedUnmuted == false) {
+		return false
+	}
+	if !(g.KeepArchivedFolders == false) {
+		return false
+	}
+	if !(g.HideReadMarks == false) {
+		return false
+	}
+	if !(g.NewNoncontactPeersRequirePremium == false) {
+		return false
+	}
 
 	return true
 }
@@ -83,12 +136,17 @@ func (g *GlobalPrivacySettings) String() string {
 
 // FillFrom fills GlobalPrivacySettings from given interface.
 func (g *GlobalPrivacySettings) FillFrom(from interface {
-	GetArchiveAndMuteNewNoncontactPeers() (value bool, ok bool)
+	GetArchiveAndMuteNewNoncontactPeers() (value bool)
+	GetKeepArchivedUnmuted() (value bool)
+	GetKeepArchivedFolders() (value bool)
+	GetHideReadMarks() (value bool)
+	GetNewNoncontactPeersRequirePremium() (value bool)
 }) {
-	if val, ok := from.GetArchiveAndMuteNewNoncontactPeers(); ok {
-		g.ArchiveAndMuteNewNoncontactPeers = val
-	}
-
+	g.ArchiveAndMuteNewNoncontactPeers = from.GetArchiveAndMuteNewNoncontactPeers()
+	g.KeepArchivedUnmuted = from.GetKeepArchivedUnmuted()
+	g.KeepArchivedFolders = from.GetKeepArchivedFolders()
+	g.HideReadMarks = from.GetHideReadMarks()
+	g.NewNoncontactPeersRequirePremium = from.GetNewNoncontactPeersRequirePremium()
 }
 
 // TypeID returns type id in TL schema.
@@ -119,6 +177,26 @@ func (g *GlobalPrivacySettings) TypeInfo() tdp.Type {
 			SchemaName: "archive_and_mute_new_noncontact_peers",
 			Null:       !g.Flags.Has(0),
 		},
+		{
+			Name:       "KeepArchivedUnmuted",
+			SchemaName: "keep_archived_unmuted",
+			Null:       !g.Flags.Has(1),
+		},
+		{
+			Name:       "KeepArchivedFolders",
+			SchemaName: "keep_archived_folders",
+			Null:       !g.Flags.Has(2),
+		},
+		{
+			Name:       "HideReadMarks",
+			SchemaName: "hide_read_marks",
+			Null:       !g.Flags.Has(3),
+		},
+		{
+			Name:       "NewNoncontactPeersRequirePremium",
+			SchemaName: "new_noncontact_peers_require_premium",
+			Null:       !g.Flags.Has(4),
+		},
 	}
 	return typ
 }
@@ -128,12 +206,24 @@ func (g *GlobalPrivacySettings) SetFlags() {
 	if !(g.ArchiveAndMuteNewNoncontactPeers == false) {
 		g.Flags.Set(0)
 	}
+	if !(g.KeepArchivedUnmuted == false) {
+		g.Flags.Set(1)
+	}
+	if !(g.KeepArchivedFolders == false) {
+		g.Flags.Set(2)
+	}
+	if !(g.HideReadMarks == false) {
+		g.Flags.Set(3)
+	}
+	if !(g.NewNoncontactPeersRequirePremium == false) {
+		g.Flags.Set(4)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (g *GlobalPrivacySettings) Encode(b *bin.Buffer) error {
 	if g == nil {
-		return fmt.Errorf("can't encode globalPrivacySettings#bea2f424 as nil")
+		return fmt.Errorf("can't encode globalPrivacySettings#734c4ccb as nil")
 	}
 	b.PutID(GlobalPrivacySettingsTypeID)
 	return g.EncodeBare(b)
@@ -142,14 +232,11 @@ func (g *GlobalPrivacySettings) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (g *GlobalPrivacySettings) EncodeBare(b *bin.Buffer) error {
 	if g == nil {
-		return fmt.Errorf("can't encode globalPrivacySettings#bea2f424 as nil")
+		return fmt.Errorf("can't encode globalPrivacySettings#734c4ccb as nil")
 	}
 	g.SetFlags()
 	if err := g.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode globalPrivacySettings#bea2f424: field flags: %w", err)
-	}
-	if g.Flags.Has(0) {
-		b.PutBool(g.ArchiveAndMuteNewNoncontactPeers)
+		return fmt.Errorf("unable to encode globalPrivacySettings#734c4ccb: field flags: %w", err)
 	}
 	return nil
 }
@@ -157,10 +244,10 @@ func (g *GlobalPrivacySettings) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (g *GlobalPrivacySettings) Decode(b *bin.Buffer) error {
 	if g == nil {
-		return fmt.Errorf("can't decode globalPrivacySettings#bea2f424 to nil")
+		return fmt.Errorf("can't decode globalPrivacySettings#734c4ccb to nil")
 	}
 	if err := b.ConsumeID(GlobalPrivacySettingsTypeID); err != nil {
-		return fmt.Errorf("unable to decode globalPrivacySettings#bea2f424: %w", err)
+		return fmt.Errorf("unable to decode globalPrivacySettings#734c4ccb: %w", err)
 	}
 	return g.DecodeBare(b)
 }
@@ -168,37 +255,112 @@ func (g *GlobalPrivacySettings) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (g *GlobalPrivacySettings) DecodeBare(b *bin.Buffer) error {
 	if g == nil {
-		return fmt.Errorf("can't decode globalPrivacySettings#bea2f424 to nil")
+		return fmt.Errorf("can't decode globalPrivacySettings#734c4ccb to nil")
 	}
 	{
 		if err := g.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode globalPrivacySettings#bea2f424: field flags: %w", err)
+			return fmt.Errorf("unable to decode globalPrivacySettings#734c4ccb: field flags: %w", err)
 		}
 	}
-	if g.Flags.Has(0) {
-		value, err := b.Bool()
-		if err != nil {
-			return fmt.Errorf("unable to decode globalPrivacySettings#bea2f424: field archive_and_mute_new_noncontact_peers: %w", err)
-		}
-		g.ArchiveAndMuteNewNoncontactPeers = value
-	}
+	g.ArchiveAndMuteNewNoncontactPeers = g.Flags.Has(0)
+	g.KeepArchivedUnmuted = g.Flags.Has(1)
+	g.KeepArchivedFolders = g.Flags.Has(2)
+	g.HideReadMarks = g.Flags.Has(3)
+	g.NewNoncontactPeersRequirePremium = g.Flags.Has(4)
 	return nil
 }
 
 // SetArchiveAndMuteNewNoncontactPeers sets value of ArchiveAndMuteNewNoncontactPeers conditional field.
 func (g *GlobalPrivacySettings) SetArchiveAndMuteNewNoncontactPeers(value bool) {
-	g.Flags.Set(0)
-	g.ArchiveAndMuteNewNoncontactPeers = value
+	if value {
+		g.Flags.Set(0)
+		g.ArchiveAndMuteNewNoncontactPeers = true
+	} else {
+		g.Flags.Unset(0)
+		g.ArchiveAndMuteNewNoncontactPeers = false
+	}
 }
 
-// GetArchiveAndMuteNewNoncontactPeers returns value of ArchiveAndMuteNewNoncontactPeers conditional field and
-// boolean which is true if field was set.
-func (g *GlobalPrivacySettings) GetArchiveAndMuteNewNoncontactPeers() (value bool, ok bool) {
+// GetArchiveAndMuteNewNoncontactPeers returns value of ArchiveAndMuteNewNoncontactPeers conditional field.
+func (g *GlobalPrivacySettings) GetArchiveAndMuteNewNoncontactPeers() (value bool) {
 	if g == nil {
 		return
 	}
-	if !g.Flags.Has(0) {
-		return value, false
+	return g.Flags.Has(0)
+}
+
+// SetKeepArchivedUnmuted sets value of KeepArchivedUnmuted conditional field.
+func (g *GlobalPrivacySettings) SetKeepArchivedUnmuted(value bool) {
+	if value {
+		g.Flags.Set(1)
+		g.KeepArchivedUnmuted = true
+	} else {
+		g.Flags.Unset(1)
+		g.KeepArchivedUnmuted = false
 	}
-	return g.ArchiveAndMuteNewNoncontactPeers, true
+}
+
+// GetKeepArchivedUnmuted returns value of KeepArchivedUnmuted conditional field.
+func (g *GlobalPrivacySettings) GetKeepArchivedUnmuted() (value bool) {
+	if g == nil {
+		return
+	}
+	return g.Flags.Has(1)
+}
+
+// SetKeepArchivedFolders sets value of KeepArchivedFolders conditional field.
+func (g *GlobalPrivacySettings) SetKeepArchivedFolders(value bool) {
+	if value {
+		g.Flags.Set(2)
+		g.KeepArchivedFolders = true
+	} else {
+		g.Flags.Unset(2)
+		g.KeepArchivedFolders = false
+	}
+}
+
+// GetKeepArchivedFolders returns value of KeepArchivedFolders conditional field.
+func (g *GlobalPrivacySettings) GetKeepArchivedFolders() (value bool) {
+	if g == nil {
+		return
+	}
+	return g.Flags.Has(2)
+}
+
+// SetHideReadMarks sets value of HideReadMarks conditional field.
+func (g *GlobalPrivacySettings) SetHideReadMarks(value bool) {
+	if value {
+		g.Flags.Set(3)
+		g.HideReadMarks = true
+	} else {
+		g.Flags.Unset(3)
+		g.HideReadMarks = false
+	}
+}
+
+// GetHideReadMarks returns value of HideReadMarks conditional field.
+func (g *GlobalPrivacySettings) GetHideReadMarks() (value bool) {
+	if g == nil {
+		return
+	}
+	return g.Flags.Has(3)
+}
+
+// SetNewNoncontactPeersRequirePremium sets value of NewNoncontactPeersRequirePremium conditional field.
+func (g *GlobalPrivacySettings) SetNewNoncontactPeersRequirePremium(value bool) {
+	if value {
+		g.Flags.Set(4)
+		g.NewNoncontactPeersRequirePremium = true
+	} else {
+		g.Flags.Unset(4)
+		g.NewNoncontactPeersRequirePremium = false
+	}
+}
+
+// GetNewNoncontactPeersRequirePremium returns value of NewNoncontactPeersRequirePremium conditional field.
+func (g *GlobalPrivacySettings) GetNewNoncontactPeersRequirePremium() (value bool) {
+	if g == nil {
+		return
+	}
+	return g.Flags.Has(4)
 }

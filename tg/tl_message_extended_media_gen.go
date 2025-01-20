@@ -32,24 +32,34 @@ var (
 )
 
 // MessageExtendedMediaPreview represents TL type `messageExtendedMediaPreview#ad628cc8`.
+// Paid media preview for not yet purchased paid media, see here »¹ for more info.
+//
+// Links:
+//  1. https://core.telegram.org/api/paid-media
 //
 // See https://core.telegram.org/constructor/messageExtendedMediaPreview for reference.
 type MessageExtendedMediaPreview struct {
-	// Flags field of MessageExtendedMediaPreview.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// W field of MessageExtendedMediaPreview.
+	// Width
 	//
 	// Use SetW and GetW helpers.
 	W int
-	// H field of MessageExtendedMediaPreview.
+	// Height
 	//
 	// Use SetH and GetH helpers.
 	H int
-	// Thumb field of MessageExtendedMediaPreview.
+	// Extremely low resolution thumbnail¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/files#stripped-thumbnails
 	//
 	// Use SetThumb and GetThumb helpers.
 	Thumb PhotoSizeClass
-	// VideoDuration field of MessageExtendedMediaPreview.
+	// Video duration for videos.
 	//
 	// Use SetVideoDuration and GetVideoDuration helpers.
 	VideoDuration int
@@ -354,10 +364,14 @@ func (m *MessageExtendedMediaPreview) GetVideoDuration() (value int, ok bool) {
 }
 
 // MessageExtendedMedia represents TL type `messageExtendedMedia#ee479c64`.
+// Already purchased paid media, see here »¹ for more info.
+//
+// Links:
+//  1. https://core.telegram.org/api/paid-media
 //
 // See https://core.telegram.org/constructor/messageExtendedMedia for reference.
 type MessageExtendedMedia struct {
-	// Media field of MessageExtendedMedia.
+	// The media we purchased.
 	Media MessageMediaClass
 }
 

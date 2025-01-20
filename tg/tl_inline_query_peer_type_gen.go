@@ -32,7 +32,7 @@ var (
 )
 
 // InlineQueryPeerTypeSameBotPM represents TL type `inlineQueryPeerTypeSameBotPM#3081ed9d`.
-// The inline query was sent in a private chat with the bot itself
+// Peer type: private chat with the bot itself
 //
 // See https://core.telegram.org/constructor/inlineQueryPeerTypeSameBotPM for reference.
 type InlineQueryPeerTypeSameBotPM struct {
@@ -134,7 +134,7 @@ func (i *InlineQueryPeerTypeSameBotPM) DecodeBare(b *bin.Buffer) error {
 }
 
 // InlineQueryPeerTypePM represents TL type `inlineQueryPeerTypePM#833c0fac`.
-// The inline query was sent in a private chat
+// Peer type: private chat
 //
 // See https://core.telegram.org/constructor/inlineQueryPeerTypePM for reference.
 type InlineQueryPeerTypePM struct {
@@ -236,7 +236,7 @@ func (i *InlineQueryPeerTypePM) DecodeBare(b *bin.Buffer) error {
 }
 
 // InlineQueryPeerTypeChat represents TL type `inlineQueryPeerTypeChat#d766c50a`.
-// The inline query was sent in a chat¹
+// Peer type: chat¹
 //
 // Links:
 //  1. https://core.telegram.org/api/channel
@@ -341,7 +341,7 @@ func (i *InlineQueryPeerTypeChat) DecodeBare(b *bin.Buffer) error {
 }
 
 // InlineQueryPeerTypeMegagroup represents TL type `inlineQueryPeerTypeMegagroup#5ec4be43`.
-// The inline query was sent in a supergroup¹
+// Peer type: supergroup¹
 //
 // Links:
 //  1. https://core.telegram.org/api/channel
@@ -446,7 +446,7 @@ func (i *InlineQueryPeerTypeMegagroup) DecodeBare(b *bin.Buffer) error {
 }
 
 // InlineQueryPeerTypeBroadcast represents TL type `inlineQueryPeerTypeBroadcast#6334ee9a`.
-// The inline query was sent in a channel¹
+// Peer type: channel¹
 //
 // Links:
 //  1. https://core.telegram.org/api/channel
@@ -550,6 +550,108 @@ func (i *InlineQueryPeerTypeBroadcast) DecodeBare(b *bin.Buffer) error {
 	return nil
 }
 
+// InlineQueryPeerTypeBotPM represents TL type `inlineQueryPeerTypeBotPM#e3b2d0c`.
+// Peer type: private chat with a bot.
+//
+// See https://core.telegram.org/constructor/inlineQueryPeerTypeBotPM for reference.
+type InlineQueryPeerTypeBotPM struct {
+}
+
+// InlineQueryPeerTypeBotPMTypeID is TL type id of InlineQueryPeerTypeBotPM.
+const InlineQueryPeerTypeBotPMTypeID = 0xe3b2d0c
+
+// construct implements constructor of InlineQueryPeerTypeClass.
+func (i InlineQueryPeerTypeBotPM) construct() InlineQueryPeerTypeClass { return &i }
+
+// Ensuring interfaces in compile-time for InlineQueryPeerTypeBotPM.
+var (
+	_ bin.Encoder     = &InlineQueryPeerTypeBotPM{}
+	_ bin.Decoder     = &InlineQueryPeerTypeBotPM{}
+	_ bin.BareEncoder = &InlineQueryPeerTypeBotPM{}
+	_ bin.BareDecoder = &InlineQueryPeerTypeBotPM{}
+
+	_ InlineQueryPeerTypeClass = &InlineQueryPeerTypeBotPM{}
+)
+
+func (i *InlineQueryPeerTypeBotPM) Zero() bool {
+	if i == nil {
+		return true
+	}
+
+	return true
+}
+
+// String implements fmt.Stringer.
+func (i *InlineQueryPeerTypeBotPM) String() string {
+	if i == nil {
+		return "InlineQueryPeerTypeBotPM(nil)"
+	}
+	type Alias InlineQueryPeerTypeBotPM
+	return fmt.Sprintf("InlineQueryPeerTypeBotPM%+v", Alias(*i))
+}
+
+// TypeID returns type id in TL schema.
+//
+// See https://core.telegram.org/mtproto/TL-tl#remarks.
+func (*InlineQueryPeerTypeBotPM) TypeID() uint32 {
+	return InlineQueryPeerTypeBotPMTypeID
+}
+
+// TypeName returns name of type in TL schema.
+func (*InlineQueryPeerTypeBotPM) TypeName() string {
+	return "inlineQueryPeerTypeBotPM"
+}
+
+// TypeInfo returns info about TL type.
+func (i *InlineQueryPeerTypeBotPM) TypeInfo() tdp.Type {
+	typ := tdp.Type{
+		Name: "inlineQueryPeerTypeBotPM",
+		ID:   InlineQueryPeerTypeBotPMTypeID,
+	}
+	if i == nil {
+		typ.Null = true
+		return typ
+	}
+	typ.Fields = []tdp.Field{}
+	return typ
+}
+
+// Encode implements bin.Encoder.
+func (i *InlineQueryPeerTypeBotPM) Encode(b *bin.Buffer) error {
+	if i == nil {
+		return fmt.Errorf("can't encode inlineQueryPeerTypeBotPM#e3b2d0c as nil")
+	}
+	b.PutID(InlineQueryPeerTypeBotPMTypeID)
+	return i.EncodeBare(b)
+}
+
+// EncodeBare implements bin.BareEncoder.
+func (i *InlineQueryPeerTypeBotPM) EncodeBare(b *bin.Buffer) error {
+	if i == nil {
+		return fmt.Errorf("can't encode inlineQueryPeerTypeBotPM#e3b2d0c as nil")
+	}
+	return nil
+}
+
+// Decode implements bin.Decoder.
+func (i *InlineQueryPeerTypeBotPM) Decode(b *bin.Buffer) error {
+	if i == nil {
+		return fmt.Errorf("can't decode inlineQueryPeerTypeBotPM#e3b2d0c to nil")
+	}
+	if err := b.ConsumeID(InlineQueryPeerTypeBotPMTypeID); err != nil {
+		return fmt.Errorf("unable to decode inlineQueryPeerTypeBotPM#e3b2d0c: %w", err)
+	}
+	return i.DecodeBare(b)
+}
+
+// DecodeBare implements bin.BareDecoder.
+func (i *InlineQueryPeerTypeBotPM) DecodeBare(b *bin.Buffer) error {
+	if i == nil {
+		return fmt.Errorf("can't decode inlineQueryPeerTypeBotPM#e3b2d0c to nil")
+	}
+	return nil
+}
+
 // InlineQueryPeerTypeClassName is schema name of InlineQueryPeerTypeClass.
 const InlineQueryPeerTypeClassName = "InlineQueryPeerType"
 
@@ -569,6 +671,7 @@ const InlineQueryPeerTypeClassName = "InlineQueryPeerType"
 //	case *tg.InlineQueryPeerTypeChat: // inlineQueryPeerTypeChat#d766c50a
 //	case *tg.InlineQueryPeerTypeMegagroup: // inlineQueryPeerTypeMegagroup#5ec4be43
 //	case *tg.InlineQueryPeerTypeBroadcast: // inlineQueryPeerTypeBroadcast#6334ee9a
+//	case *tg.InlineQueryPeerTypeBotPM: // inlineQueryPeerTypeBotPM#e3b2d0c
 //	default: panic(v)
 //	}
 type InlineQueryPeerTypeClass interface {
@@ -628,6 +731,13 @@ func DecodeInlineQueryPeerType(buf *bin.Buffer) (InlineQueryPeerTypeClass, error
 	case InlineQueryPeerTypeBroadcastTypeID:
 		// Decoding inlineQueryPeerTypeBroadcast#6334ee9a.
 		v := InlineQueryPeerTypeBroadcast{}
+		if err := v.Decode(buf); err != nil {
+			return nil, fmt.Errorf("unable to decode InlineQueryPeerTypeClass: %w", err)
+		}
+		return &v, nil
+	case InlineQueryPeerTypeBotPMTypeID:
+		// Decoding inlineQueryPeerTypeBotPM#e3b2d0c.
+		v := InlineQueryPeerTypeBotPM{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode InlineQueryPeerTypeClass: %w", err)
 		}

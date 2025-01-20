@@ -14,6 +14,174 @@ import (
 // No-op definition for keeping imports.
 var _ = context.Background()
 
+type innerAccountGetChannelDefaultEmojiStatuses struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.AccountEmojiStatuses
+}
+
+type AccountGetChannelDefaultEmojiStatuses struct {
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewAccountGetChannelDefaultEmojiStatuses creates new AccountGetChannelDefaultEmojiStatuses.
+func NewAccountGetChannelDefaultEmojiStatuses(raw *tg.Client) *AccountGetChannelDefaultEmojiStatuses {
+	q := &AccountGetChannelDefaultEmojiStatuses{
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *AccountGetChannelDefaultEmojiStatuses) store(v innerAccountGetChannelDefaultEmojiStatuses) {
+	s.last.Store(v)
+}
+
+func (s *AccountGetChannelDefaultEmojiStatuses) load() (innerAccountGetChannelDefaultEmojiStatuses, bool) {
+	v, ok := s.last.Load().(innerAccountGetChannelDefaultEmojiStatuses)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned AccountEmojiStatuses must not be mutated.
+func (s *AccountGetChannelDefaultEmojiStatuses) Value() *tg.AccountEmojiStatuses {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *AccountGetChannelDefaultEmojiStatuses) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *AccountGetChannelDefaultEmojiStatuses) Get(ctx context.Context) (*tg.AccountEmojiStatuses, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *AccountGetChannelDefaultEmojiStatuses) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := lastHash
+	result, err := s.raw.AccountGetChannelDefaultEmojiStatuses(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute AccountGetChannelDefaultEmojiStatuses")
+	}
+
+	switch variant := result.(type) {
+	case *tg.AccountEmojiStatuses:
+		hash := variant.Hash
+
+		s.store(innerAccountGetChannelDefaultEmojiStatuses{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.AccountEmojiStatusesNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
+type innerAccountGetChannelRestrictedStatusEmojis struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.EmojiList
+}
+
+type AccountGetChannelRestrictedStatusEmojis struct {
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewAccountGetChannelRestrictedStatusEmojis creates new AccountGetChannelRestrictedStatusEmojis.
+func NewAccountGetChannelRestrictedStatusEmojis(raw *tg.Client) *AccountGetChannelRestrictedStatusEmojis {
+	q := &AccountGetChannelRestrictedStatusEmojis{
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *AccountGetChannelRestrictedStatusEmojis) store(v innerAccountGetChannelRestrictedStatusEmojis) {
+	s.last.Store(v)
+}
+
+func (s *AccountGetChannelRestrictedStatusEmojis) load() (innerAccountGetChannelRestrictedStatusEmojis, bool) {
+	v, ok := s.last.Load().(innerAccountGetChannelRestrictedStatusEmojis)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned EmojiList must not be mutated.
+func (s *AccountGetChannelRestrictedStatusEmojis) Value() *tg.EmojiList {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *AccountGetChannelRestrictedStatusEmojis) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *AccountGetChannelRestrictedStatusEmojis) Get(ctx context.Context) (*tg.EmojiList, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *AccountGetChannelRestrictedStatusEmojis) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := lastHash
+	result, err := s.raw.AccountGetChannelRestrictedStatusEmojis(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute AccountGetChannelRestrictedStatusEmojis")
+	}
+
+	switch variant := result.(type) {
+	case *tg.EmojiList:
+		hash := variant.Hash
+
+		s.store(innerAccountGetChannelRestrictedStatusEmojis{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.EmojiListNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
 type innerAccountGetChatThemes struct {
 	// Last received hash.
 	hash int64
@@ -89,6 +257,90 @@ func (s *AccountGetChatThemes) Fetch(ctx context.Context) (bool, error) {
 		})
 		return true, nil
 	case *tg.AccountThemesNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
+type innerAccountGetDefaultBackgroundEmojis struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.EmojiList
+}
+
+type AccountGetDefaultBackgroundEmojis struct {
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewAccountGetDefaultBackgroundEmojis creates new AccountGetDefaultBackgroundEmojis.
+func NewAccountGetDefaultBackgroundEmojis(raw *tg.Client) *AccountGetDefaultBackgroundEmojis {
+	q := &AccountGetDefaultBackgroundEmojis{
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *AccountGetDefaultBackgroundEmojis) store(v innerAccountGetDefaultBackgroundEmojis) {
+	s.last.Store(v)
+}
+
+func (s *AccountGetDefaultBackgroundEmojis) load() (innerAccountGetDefaultBackgroundEmojis, bool) {
+	v, ok := s.last.Load().(innerAccountGetDefaultBackgroundEmojis)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned EmojiList must not be mutated.
+func (s *AccountGetDefaultBackgroundEmojis) Value() *tg.EmojiList {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *AccountGetDefaultBackgroundEmojis) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *AccountGetDefaultBackgroundEmojis) Get(ctx context.Context) (*tg.EmojiList, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *AccountGetDefaultBackgroundEmojis) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := lastHash
+	result, err := s.raw.AccountGetDefaultBackgroundEmojis(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute AccountGetDefaultBackgroundEmojis")
+	}
+
+	switch variant := result.(type) {
+	case *tg.EmojiList:
+		hash := variant.Hash
+
+		s.store(innerAccountGetDefaultBackgroundEmojis{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.EmojiListNotModified:
 		if lastHash == 0 {
 			return false, errors.Errorf("got unexpected %T result", result)
 		}
@@ -942,6 +1194,90 @@ func (s *MessagesGetAttachMenuBots) Fetch(ctx context.Context) (bool, error) {
 	}
 }
 
+type innerMessagesGetDefaultTagReactions struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.MessagesReactions
+}
+
+type MessagesGetDefaultTagReactions struct {
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewMessagesGetDefaultTagReactions creates new MessagesGetDefaultTagReactions.
+func NewMessagesGetDefaultTagReactions(raw *tg.Client) *MessagesGetDefaultTagReactions {
+	q := &MessagesGetDefaultTagReactions{
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *MessagesGetDefaultTagReactions) store(v innerMessagesGetDefaultTagReactions) {
+	s.last.Store(v)
+}
+
+func (s *MessagesGetDefaultTagReactions) load() (innerMessagesGetDefaultTagReactions, bool) {
+	v, ok := s.last.Load().(innerMessagesGetDefaultTagReactions)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned MessagesReactions must not be mutated.
+func (s *MessagesGetDefaultTagReactions) Value() *tg.MessagesReactions {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *MessagesGetDefaultTagReactions) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *MessagesGetDefaultTagReactions) Get(ctx context.Context) (*tg.MessagesReactions, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *MessagesGetDefaultTagReactions) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := lastHash
+	result, err := s.raw.MessagesGetDefaultTagReactions(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute MessagesGetDefaultTagReactions")
+	}
+
+	switch variant := result.(type) {
+	case *tg.MessagesReactions:
+		hash := variant.Hash
+
+		s.store(innerMessagesGetDefaultTagReactions{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.MessagesReactionsNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
 type innerMessagesGetEmojiStickers struct {
 	// Last received hash.
 	hash int64
@@ -1362,6 +1698,90 @@ func (s *MessagesGetMaskStickers) Fetch(ctx context.Context) (bool, error) {
 	}
 }
 
+type innerMessagesGetQuickReplies struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.MessagesQuickReplies
+}
+
+type MessagesGetQuickReplies struct {
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewMessagesGetQuickReplies creates new MessagesGetQuickReplies.
+func NewMessagesGetQuickReplies(raw *tg.Client) *MessagesGetQuickReplies {
+	q := &MessagesGetQuickReplies{
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *MessagesGetQuickReplies) store(v innerMessagesGetQuickReplies) {
+	s.last.Store(v)
+}
+
+func (s *MessagesGetQuickReplies) load() (innerMessagesGetQuickReplies, bool) {
+	v, ok := s.last.Load().(innerMessagesGetQuickReplies)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned MessagesQuickReplies must not be mutated.
+func (s *MessagesGetQuickReplies) Value() *tg.MessagesQuickReplies {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *MessagesGetQuickReplies) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *MessagesGetQuickReplies) Get(ctx context.Context) (*tg.MessagesQuickReplies, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *MessagesGetQuickReplies) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := lastHash
+	result, err := s.raw.MessagesGetQuickReplies(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute MessagesGetQuickReplies")
+	}
+
+	switch variant := result.(type) {
+	case *tg.MessagesQuickReplies:
+		hash := s.computeHash(variant)
+
+		s.store(innerMessagesGetQuickReplies{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.MessagesQuickRepliesNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
 type innerMessagesGetRecentReactions struct {
 	// Last received hash.
 	hash int64
@@ -1613,6 +2033,94 @@ func (s *MessagesGetSavedGifs) Fetch(ctx context.Context) (bool, error) {
 		})
 		return true, nil
 	case *tg.MessagesSavedGifsNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
+type innerMessagesGetSavedReactionTags struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.MessagesSavedReactionTags
+}
+
+type MessagesGetSavedReactionTags struct {
+	// Query to send.
+	req *tg.MessagesGetSavedReactionTagsRequest
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewMessagesGetSavedReactionTags creates new MessagesGetSavedReactionTags.
+func NewMessagesGetSavedReactionTags(raw *tg.Client, initial *tg.MessagesGetSavedReactionTagsRequest) *MessagesGetSavedReactionTags {
+	q := &MessagesGetSavedReactionTags{
+		req: initial,
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *MessagesGetSavedReactionTags) store(v innerMessagesGetSavedReactionTags) {
+	s.last.Store(v)
+}
+
+func (s *MessagesGetSavedReactionTags) load() (innerMessagesGetSavedReactionTags, bool) {
+	v, ok := s.last.Load().(innerMessagesGetSavedReactionTags)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned MessagesSavedReactionTags must not be mutated.
+func (s *MessagesGetSavedReactionTags) Value() *tg.MessagesSavedReactionTags {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *MessagesGetSavedReactionTags) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *MessagesGetSavedReactionTags) Get(ctx context.Context) (*tg.MessagesSavedReactionTags, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *MessagesGetSavedReactionTags) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := s.req
+	req.Hash = lastHash
+	result, err := s.raw.MessagesGetSavedReactionTags(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute MessagesGetSavedReactionTags")
+	}
+
+	switch variant := result.(type) {
+	case *tg.MessagesSavedReactionTags:
+		hash := variant.Hash
+
+		s.store(innerMessagesGetSavedReactionTags{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.MessagesSavedReactionTagsNotModified:
 		if lastHash == 0 {
 			return false, errors.Errorf("got unexpected %T result", result)
 		}
@@ -1877,6 +2385,94 @@ func (s *MessagesSearchCustomEmoji) Fetch(ctx context.Context) (bool, error) {
 		})
 		return true, nil
 	case *tg.EmojiListNotModified:
+		if lastHash == 0 {
+			return false, errors.Errorf("got unexpected %T result", result)
+		}
+		return false, nil
+	default:
+		return false, errors.Errorf("unexpected type %T", result)
+	}
+}
+
+type innerMessagesSearchEmojiStickerSets struct {
+	// Last received hash.
+	hash int64
+	// Last received result.
+	value *tg.MessagesFoundStickerSets
+}
+
+type MessagesSearchEmojiStickerSets struct {
+	// Query to send.
+	req *tg.MessagesSearchEmojiStickerSetsRequest
+	// Result state.
+	last atomic.Value
+
+	// Reference to RPC client to make requests.
+	raw *tg.Client
+}
+
+// NewMessagesSearchEmojiStickerSets creates new MessagesSearchEmojiStickerSets.
+func NewMessagesSearchEmojiStickerSets(raw *tg.Client, initial *tg.MessagesSearchEmojiStickerSetsRequest) *MessagesSearchEmojiStickerSets {
+	q := &MessagesSearchEmojiStickerSets{
+		req: initial,
+		raw: raw,
+	}
+
+	return q
+}
+
+func (s *MessagesSearchEmojiStickerSets) store(v innerMessagesSearchEmojiStickerSets) {
+	s.last.Store(v)
+}
+
+func (s *MessagesSearchEmojiStickerSets) load() (innerMessagesSearchEmojiStickerSets, bool) {
+	v, ok := s.last.Load().(innerMessagesSearchEmojiStickerSets)
+	return v, ok
+}
+
+// Value returns last received result.
+// NB: May be nil. Returned MessagesFoundStickerSets must not be mutated.
+func (s *MessagesSearchEmojiStickerSets) Value() *tg.MessagesFoundStickerSets {
+	inner, _ := s.load()
+	return inner.value
+}
+
+// Hash returns last received hash.
+func (s *MessagesSearchEmojiStickerSets) Hash() int64 {
+	inner, _ := s.load()
+	return inner.hash
+}
+
+// Get updates data if needed and returns it.
+func (s *MessagesSearchEmojiStickerSets) Get(ctx context.Context) (*tg.MessagesFoundStickerSets, error) {
+	if _, err := s.Fetch(ctx); err != nil {
+		return nil, err
+	}
+
+	return s.Value(), nil
+}
+
+// Fetch updates data if needed and returns true if data was modified.
+func (s *MessagesSearchEmojiStickerSets) Fetch(ctx context.Context) (bool, error) {
+	lastHash := s.Hash()
+
+	req := s.req
+	req.Hash = lastHash
+	result, err := s.raw.MessagesSearchEmojiStickerSets(ctx, req)
+	if err != nil {
+		return false, errors.Wrap(err, "execute MessagesSearchEmojiStickerSets")
+	}
+
+	switch variant := result.(type) {
+	case *tg.MessagesFoundStickerSets:
+		hash := variant.Hash
+
+		s.store(innerMessagesSearchEmojiStickerSets{
+			hash:  hash,
+			value: variant,
+		})
+		return true, nil
+	case *tg.MessagesFoundStickerSetsNotModified:
 		if lastHash == 0 {
 			return false, errors.Errorf("got unexpected %T result", result)
 		}

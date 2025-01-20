@@ -32,10 +32,17 @@ var (
 )
 
 // MessagesGetEmojiGroupsRequest represents TL type `messages.getEmojiGroups#7488ce5b`.
+// Represents a list of emoji categories¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/emoji-categories
 //
 // See https://core.telegram.org/method/messages.getEmojiGroups for reference.
 type MessagesGetEmojiGroupsRequest struct {
-	// Hash field of MessagesGetEmojiGroupsRequest.
+	// Hash used for caching, for more info click here¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/offsets#hash-generation
 	Hash int
 }
 
@@ -161,6 +168,10 @@ func (g *MessagesGetEmojiGroupsRequest) GetHash() (value int) {
 }
 
 // MessagesGetEmojiGroups invokes method messages.getEmojiGroups#7488ce5b returning error if any.
+// Represents a list of emoji categories¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/emoji-categories
 //
 // See https://core.telegram.org/method/messages.getEmojiGroups for reference.
 func (c *Client) MessagesGetEmojiGroups(ctx context.Context, hash int) (MessagesEmojiGroupsClass, error) {

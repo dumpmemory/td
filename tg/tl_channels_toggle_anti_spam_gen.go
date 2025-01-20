@@ -32,12 +32,21 @@ var (
 )
 
 // ChannelsToggleAntiSpamRequest represents TL type `channels.toggleAntiSpam#68f3e4eb`.
+// Enable or disable the native antispam system¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/antispam
 //
 // See https://core.telegram.org/method/channels.toggleAntiSpam for reference.
 type ChannelsToggleAntiSpamRequest struct {
-	// Channel field of ChannelsToggleAntiSpamRequest.
+	// Supergroup ID. The specified supergroup must have at least
+	// telegram_antispam_group_size_min members to enable antispam functionality, as
+	// specified by the client configuration parameters¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/config#client-configuration
 	Channel InputChannelClass
-	// Enabled field of ChannelsToggleAntiSpamRequest.
+	// Enable or disable the native antispam system.
 	Enabled bool
 }
 
@@ -198,6 +207,15 @@ func (t *ChannelsToggleAntiSpamRequest) GetChannelAsNotEmpty() (NotEmptyInputCha
 }
 
 // ChannelsToggleAntiSpam invokes method channels.toggleAntiSpam#68f3e4eb returning error if any.
+// Enable or disable the native antispam system¹.
+//
+// Links:
+//  1. https://core.telegram.org/api/antispam
+//
+// Possible errors:
+//
+//	400 CHANNEL_INVALID: The provided channel is invalid.
+//	400 CHAT_NOT_MODIFIED: No changes were made to chat information because the new information you passed is identical to the current information.
 //
 // See https://core.telegram.org/method/channels.toggleAntiSpam for reference.
 func (c *Client) ChannelsToggleAntiSpam(ctx context.Context, request *ChannelsToggleAntiSpamRequest) (UpdatesClass, error) {

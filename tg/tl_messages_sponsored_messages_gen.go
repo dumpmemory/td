@@ -36,9 +36,13 @@ var (
 //
 // See https://core.telegram.org/constructor/messages.sponsoredMessages for reference.
 type MessagesSponsoredMessages struct {
-	// Flags field of MessagesSponsoredMessages.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// PostsBetween field of MessagesSponsoredMessages.
+	// If set, specifies the minimum number of messages between shown sponsored messages;
+	// otherwise, only one sponsored message must be shown after all ordinary messages.
 	//
 	// Use SetPostsBetween and GetPostsBetween helpers.
 	PostsBetween int
@@ -348,6 +352,7 @@ func (s *MessagesSponsoredMessages) MapUsers() (value UserClassArray) {
 }
 
 // MessagesSponsoredMessagesEmpty represents TL type `messages.sponsoredMessagesEmpty#1839490f`.
+// No sponsored messages are available.
 //
 // See https://core.telegram.org/constructor/messages.sponsoredMessagesEmpty for reference.
 type MessagesSponsoredMessagesEmpty struct {

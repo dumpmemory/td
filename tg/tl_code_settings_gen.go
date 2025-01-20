@@ -66,20 +66,24 @@ type CodeSettings struct {
 	// Links:
 	//  1) https://core.telegram.org/constructor/auth.codeTypeMissedCall
 	AllowMissedCall bool
-	// AllowFirebase field of CodeSettings.
+	// Whether Firebase auth is supported
 	AllowFirebase bool
-	// Previously stored logout tokens, see the documentation for more info »¹
+	// Set this flag if there is a SIM card in the current device, but it is not possible to
+	// check whether the specified phone number matches the SIM's phone number.
+	UnknownNumber bool
+	// Previously stored future auth tokens, see the documentation for more info »¹
 	//
 	// Links:
-	//  1) https://core.telegram.org/api/auth#logout-tokens
+	//  1) https://core.telegram.org/api/auth#future-auth-tokens
 	//
 	// Use SetLogoutTokens and GetLogoutTokens helpers.
 	LogoutTokens [][]byte
-	// Token field of CodeSettings.
+	// Used only by official iOS apps for Firebase auth: device token for apple push.
 	//
 	// Use SetToken and GetToken helpers.
 	Token string
-	// AppSandbox field of CodeSettings.
+	// Used only by official iOS apps for firebase auth: whether a sandbox-certificate will
+	// be used during transmission of the push notification.
 	//
 	// Use SetAppSandbox and GetAppSandbox helpers.
 	AppSandbox bool
@@ -118,6 +122,9 @@ func (c *CodeSettings) Zero() bool {
 	if !(c.AllowFirebase == false) {
 		return false
 	}
+	if !(c.UnknownNumber == false) {
+		return false
+	}
 	if !(c.LogoutTokens == nil) {
 		return false
 	}
@@ -147,6 +154,7 @@ func (c *CodeSettings) FillFrom(from interface {
 	GetAllowAppHash() (value bool)
 	GetAllowMissedCall() (value bool)
 	GetAllowFirebase() (value bool)
+	GetUnknownNumber() (value bool)
 	GetLogoutTokens() (value [][]byte, ok bool)
 	GetToken() (value string, ok bool)
 	GetAppSandbox() (value bool, ok bool)
@@ -156,6 +164,7 @@ func (c *CodeSettings) FillFrom(from interface {
 	c.AllowAppHash = from.GetAllowAppHash()
 	c.AllowMissedCall = from.GetAllowMissedCall()
 	c.AllowFirebase = from.GetAllowFirebase()
+	c.UnknownNumber = from.GetUnknownNumber()
 	if val, ok := from.GetLogoutTokens(); ok {
 		c.LogoutTokens = val
 	}
@@ -219,6 +228,11 @@ func (c *CodeSettings) TypeInfo() tdp.Type {
 			Null:       !c.Flags.Has(7),
 		},
 		{
+			Name:       "UnknownNumber",
+			SchemaName: "unknown_number",
+			Null:       !c.Flags.Has(9),
+		},
+		{
 			Name:       "LogoutTokens",
 			SchemaName: "logout_tokens",
 			Null:       !c.Flags.Has(6),
@@ -253,6 +267,9 @@ func (c *CodeSettings) SetFlags() {
 	}
 	if !(c.AllowFirebase == false) {
 		c.Flags.Set(7)
+	}
+	if !(c.UnknownNumber == false) {
+		c.Flags.Set(9)
 	}
 	if !(c.LogoutTokens == nil) {
 		c.Flags.Set(6)
@@ -324,6 +341,7 @@ func (c *CodeSettings) DecodeBare(b *bin.Buffer) error {
 	c.AllowAppHash = c.Flags.Has(4)
 	c.AllowMissedCall = c.Flags.Has(5)
 	c.AllowFirebase = c.Flags.Has(7)
+	c.UnknownNumber = c.Flags.Has(9)
 	if c.Flags.Has(6) {
 		headerLen, err := b.VectorHeader()
 		if err != nil {
@@ -451,6 +469,25 @@ func (c *CodeSettings) GetAllowFirebase() (value bool) {
 		return
 	}
 	return c.Flags.Has(7)
+}
+
+// SetUnknownNumber sets value of UnknownNumber conditional field.
+func (c *CodeSettings) SetUnknownNumber(value bool) {
+	if value {
+		c.Flags.Set(9)
+		c.UnknownNumber = true
+	} else {
+		c.Flags.Unset(9)
+		c.UnknownNumber = false
+	}
+}
+
+// GetUnknownNumber returns value of UnknownNumber conditional field.
+func (c *CodeSettings) GetUnknownNumber() (value bool) {
+	if c == nil {
+		return
+	}
+	return c.Flags.Has(9)
 }
 
 // SetLogoutTokens sets value of LogoutTokens conditional field.

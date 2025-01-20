@@ -1,4 +1,9 @@
 linters-settings:
+  revive:
+    rules:
+      - name: unused-parameter
+        severity: warning
+        disabled: true
   govet:
     check-shadowing: true
   gocyclo:
@@ -34,17 +39,14 @@ linters-settings:
       - octalLiteral
       - preferWriteByte
       - httpNoBody
-    settings:
-      ruleguard:
-        failOn: dsl,import
-        rules: '${configDir}/gorules/rules.go'
+      - preferFprint
 
 linters:
   disable-all: true
   enable:
-    - depguard
+#    - depguard
     - dogsled
-    - dupl
+#    - dupl
     - errcheck
     - gochecknoinits
     - goconst

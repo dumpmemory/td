@@ -31,7 +31,7 @@ var (
 	_ = tdjson.Encoder{}
 )
 
-// MessagesSendMediaRequest represents TL type `messages.sendMedia#7547c966`.
+// MessagesSendMediaRequest represents TL type `messages.sendMedia#7852834e`.
 // Send a media
 //
 // See https://core.telegram.org/method/messages.sendMedia for reference.
@@ -58,16 +58,23 @@ type MessagesSendMediaRequest struct {
 	// Links:
 	//  1) https://core.telegram.org/api/stickers#recent-stickersets
 	UpdateStickersetsOrder bool
+	// If set, any eventual webpage preview will be shown on top of the message instead of at
+	// the bottom.
+	InvertMedia bool
+	// Bots only: if set, allows sending up to 1000 messages per second, ignoring
+	// broadcasting limits¹ for a fee of 0.1 Telegram Stars per message. The relevant Stars
+	// will be withdrawn from the bot's balance.
+	//
+	// Links:
+	//  1) https://core.telegram.org/bots/faq#how-can-i-message-all-of-my-bot-39s-subscribers-at-once
+	AllowPaidFloodskip bool
 	// Destination
 	Peer InputPeerClass
-	// Message ID to which this message should reply to
+	// If set, indicates that the message should be sent in reply to the specified message or
+	// story.
 	//
-	// Use SetReplyToMsgID and GetReplyToMsgID helpers.
-	ReplyToMsgID int
-	// TopMsgID field of MessagesSendMediaRequest.
-	//
-	// Use SetTopMsgID and GetTopMsgID helpers.
-	TopMsgID int
+	// Use SetReplyTo and GetReplyTo helpers.
+	ReplyTo InputReplyToClass
 	// Attached media
 	Media InputMediaClass
 	// Caption
@@ -96,10 +103,24 @@ type MessagesSendMediaRequest struct {
 	//
 	// Use SetSendAs and GetSendAs helpers.
 	SendAs InputPeerClass
+	// Add the message to the specified quick reply shortcut »¹, instead.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/business#quick-reply-shortcuts
+	//
+	// Use SetQuickReplyShortcut and GetQuickReplyShortcut helpers.
+	QuickReplyShortcut InputQuickReplyShortcutClass
+	// Specifies a message effect »¹ to use for the message.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/effects
+	//
+	// Use SetEffect and GetEffect helpers.
+	Effect int64
 }
 
 // MessagesSendMediaRequestTypeID is TL type id of MessagesSendMediaRequest.
-const MessagesSendMediaRequestTypeID = 0x7547c966
+const MessagesSendMediaRequestTypeID = 0x7852834e
 
 // Ensuring interfaces in compile-time for MessagesSendMediaRequest.
 var (
@@ -131,13 +152,16 @@ func (s *MessagesSendMediaRequest) Zero() bool {
 	if !(s.UpdateStickersetsOrder == false) {
 		return false
 	}
+	if !(s.InvertMedia == false) {
+		return false
+	}
+	if !(s.AllowPaidFloodskip == false) {
+		return false
+	}
 	if !(s.Peer == nil) {
 		return false
 	}
-	if !(s.ReplyToMsgID == 0) {
-		return false
-	}
-	if !(s.TopMsgID == 0) {
+	if !(s.ReplyTo == nil) {
 		return false
 	}
 	if !(s.Media == nil) {
@@ -161,6 +185,12 @@ func (s *MessagesSendMediaRequest) Zero() bool {
 	if !(s.SendAs == nil) {
 		return false
 	}
+	if !(s.QuickReplyShortcut == nil) {
+		return false
+	}
+	if !(s.Effect == 0) {
+		return false
+	}
 
 	return true
 }
@@ -181,9 +211,10 @@ func (s *MessagesSendMediaRequest) FillFrom(from interface {
 	GetClearDraft() (value bool)
 	GetNoforwards() (value bool)
 	GetUpdateStickersetsOrder() (value bool)
+	GetInvertMedia() (value bool)
+	GetAllowPaidFloodskip() (value bool)
 	GetPeer() (value InputPeerClass)
-	GetReplyToMsgID() (value int, ok bool)
-	GetTopMsgID() (value int, ok bool)
+	GetReplyTo() (value InputReplyToClass, ok bool)
 	GetMedia() (value InputMediaClass)
 	GetMessage() (value string)
 	GetRandomID() (value int64)
@@ -191,19 +222,19 @@ func (s *MessagesSendMediaRequest) FillFrom(from interface {
 	GetEntities() (value []MessageEntityClass, ok bool)
 	GetScheduleDate() (value int, ok bool)
 	GetSendAs() (value InputPeerClass, ok bool)
+	GetQuickReplyShortcut() (value InputQuickReplyShortcutClass, ok bool)
+	GetEffect() (value int64, ok bool)
 }) {
 	s.Silent = from.GetSilent()
 	s.Background = from.GetBackground()
 	s.ClearDraft = from.GetClearDraft()
 	s.Noforwards = from.GetNoforwards()
 	s.UpdateStickersetsOrder = from.GetUpdateStickersetsOrder()
+	s.InvertMedia = from.GetInvertMedia()
+	s.AllowPaidFloodskip = from.GetAllowPaidFloodskip()
 	s.Peer = from.GetPeer()
-	if val, ok := from.GetReplyToMsgID(); ok {
-		s.ReplyToMsgID = val
-	}
-
-	if val, ok := from.GetTopMsgID(); ok {
-		s.TopMsgID = val
+	if val, ok := from.GetReplyTo(); ok {
+		s.ReplyTo = val
 	}
 
 	s.Media = from.GetMedia()
@@ -223,6 +254,14 @@ func (s *MessagesSendMediaRequest) FillFrom(from interface {
 
 	if val, ok := from.GetSendAs(); ok {
 		s.SendAs = val
+	}
+
+	if val, ok := from.GetQuickReplyShortcut(); ok {
+		s.QuickReplyShortcut = val
+	}
+
+	if val, ok := from.GetEffect(); ok {
+		s.Effect = val
 	}
 
 }
@@ -276,18 +315,23 @@ func (s *MessagesSendMediaRequest) TypeInfo() tdp.Type {
 			Null:       !s.Flags.Has(15),
 		},
 		{
+			Name:       "InvertMedia",
+			SchemaName: "invert_media",
+			Null:       !s.Flags.Has(16),
+		},
+		{
+			Name:       "AllowPaidFloodskip",
+			SchemaName: "allow_paid_floodskip",
+			Null:       !s.Flags.Has(19),
+		},
+		{
 			Name:       "Peer",
 			SchemaName: "peer",
 		},
 		{
-			Name:       "ReplyToMsgID",
-			SchemaName: "reply_to_msg_id",
+			Name:       "ReplyTo",
+			SchemaName: "reply_to",
 			Null:       !s.Flags.Has(0),
-		},
-		{
-			Name:       "TopMsgID",
-			SchemaName: "top_msg_id",
-			Null:       !s.Flags.Has(9),
 		},
 		{
 			Name:       "Media",
@@ -321,6 +365,16 @@ func (s *MessagesSendMediaRequest) TypeInfo() tdp.Type {
 			SchemaName: "send_as",
 			Null:       !s.Flags.Has(13),
 		},
+		{
+			Name:       "QuickReplyShortcut",
+			SchemaName: "quick_reply_shortcut",
+			Null:       !s.Flags.Has(17),
+		},
+		{
+			Name:       "Effect",
+			SchemaName: "effect",
+			Null:       !s.Flags.Has(18),
+		},
 	}
 	return typ
 }
@@ -342,11 +396,14 @@ func (s *MessagesSendMediaRequest) SetFlags() {
 	if !(s.UpdateStickersetsOrder == false) {
 		s.Flags.Set(15)
 	}
-	if !(s.ReplyToMsgID == 0) {
-		s.Flags.Set(0)
+	if !(s.InvertMedia == false) {
+		s.Flags.Set(16)
 	}
-	if !(s.TopMsgID == 0) {
-		s.Flags.Set(9)
+	if !(s.AllowPaidFloodskip == false) {
+		s.Flags.Set(19)
+	}
+	if !(s.ReplyTo == nil) {
+		s.Flags.Set(0)
 	}
 	if !(s.ReplyMarkup == nil) {
 		s.Flags.Set(2)
@@ -360,12 +417,18 @@ func (s *MessagesSendMediaRequest) SetFlags() {
 	if !(s.SendAs == nil) {
 		s.Flags.Set(13)
 	}
+	if !(s.QuickReplyShortcut == nil) {
+		s.Flags.Set(17)
+	}
+	if !(s.Effect == 0) {
+		s.Flags.Set(18)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (s *MessagesSendMediaRequest) Encode(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't encode messages.sendMedia#7547c966 as nil")
+		return fmt.Errorf("can't encode messages.sendMedia#7852834e as nil")
 	}
 	b.PutID(MessagesSendMediaRequestTypeID)
 	return s.EncodeBare(b)
@@ -374,48 +437,50 @@ func (s *MessagesSendMediaRequest) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (s *MessagesSendMediaRequest) EncodeBare(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't encode messages.sendMedia#7547c966 as nil")
+		return fmt.Errorf("can't encode messages.sendMedia#7852834e as nil")
 	}
 	s.SetFlags()
 	if err := s.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field flags: %w", err)
+		return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field flags: %w", err)
 	}
 	if s.Peer == nil {
-		return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field peer is nil")
+		return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field peer is nil")
 	}
 	if err := s.Peer.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field peer: %w", err)
+		return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field peer: %w", err)
 	}
 	if s.Flags.Has(0) {
-		b.PutInt(s.ReplyToMsgID)
-	}
-	if s.Flags.Has(9) {
-		b.PutInt(s.TopMsgID)
+		if s.ReplyTo == nil {
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field reply_to is nil")
+		}
+		if err := s.ReplyTo.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field reply_to: %w", err)
+		}
 	}
 	if s.Media == nil {
-		return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field media is nil")
+		return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field media is nil")
 	}
 	if err := s.Media.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field media: %w", err)
+		return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field media: %w", err)
 	}
 	b.PutString(s.Message)
 	b.PutLong(s.RandomID)
 	if s.Flags.Has(2) {
 		if s.ReplyMarkup == nil {
-			return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field reply_markup is nil")
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field reply_markup is nil")
 		}
 		if err := s.ReplyMarkup.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field reply_markup: %w", err)
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field reply_markup: %w", err)
 		}
 	}
 	if s.Flags.Has(3) {
 		b.PutVectorHeader(len(s.Entities))
 		for idx, v := range s.Entities {
 			if v == nil {
-				return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field entities element with index %d is nil", idx)
+				return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field entities element with index %d is nil", idx)
 			}
 			if err := v.Encode(b); err != nil {
-				return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field entities element with index %d: %w", idx, err)
+				return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field entities element with index %d: %w", idx, err)
 			}
 		}
 	}
@@ -424,11 +489,22 @@ func (s *MessagesSendMediaRequest) EncodeBare(b *bin.Buffer) error {
 	}
 	if s.Flags.Has(13) {
 		if s.SendAs == nil {
-			return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field send_as is nil")
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field send_as is nil")
 		}
 		if err := s.SendAs.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode messages.sendMedia#7547c966: field send_as: %w", err)
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field send_as: %w", err)
 		}
+	}
+	if s.Flags.Has(17) {
+		if s.QuickReplyShortcut == nil {
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field quick_reply_shortcut is nil")
+		}
+		if err := s.QuickReplyShortcut.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode messages.sendMedia#7852834e: field quick_reply_shortcut: %w", err)
+		}
+	}
+	if s.Flags.Has(18) {
+		b.PutLong(s.Effect)
 	}
 	return nil
 }
@@ -436,10 +512,10 @@ func (s *MessagesSendMediaRequest) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (s *MessagesSendMediaRequest) Decode(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't decode messages.sendMedia#7547c966 to nil")
+		return fmt.Errorf("can't decode messages.sendMedia#7852834e to nil")
 	}
 	if err := b.ConsumeID(MessagesSendMediaRequestTypeID); err != nil {
-		return fmt.Errorf("unable to decode messages.sendMedia#7547c966: %w", err)
+		return fmt.Errorf("unable to decode messages.sendMedia#7852834e: %w", err)
 	}
 	return s.DecodeBare(b)
 }
@@ -447,11 +523,11 @@ func (s *MessagesSendMediaRequest) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (s *MessagesSendMediaRequest) DecodeBare(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't decode messages.sendMedia#7547c966 to nil")
+		return fmt.Errorf("can't decode messages.sendMedia#7852834e to nil")
 	}
 	{
 		if err := s.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field flags: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field flags: %w", err)
 		}
 	}
 	s.Silent = s.Flags.Has(5)
@@ -459,59 +535,54 @@ func (s *MessagesSendMediaRequest) DecodeBare(b *bin.Buffer) error {
 	s.ClearDraft = s.Flags.Has(7)
 	s.Noforwards = s.Flags.Has(14)
 	s.UpdateStickersetsOrder = s.Flags.Has(15)
+	s.InvertMedia = s.Flags.Has(16)
+	s.AllowPaidFloodskip = s.Flags.Has(19)
 	{
 		value, err := DecodeInputPeer(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field peer: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field peer: %w", err)
 		}
 		s.Peer = value
 	}
 	if s.Flags.Has(0) {
-		value, err := b.Int()
+		value, err := DecodeInputReplyTo(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field reply_to_msg_id: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field reply_to: %w", err)
 		}
-		s.ReplyToMsgID = value
-	}
-	if s.Flags.Has(9) {
-		value, err := b.Int()
-		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field top_msg_id: %w", err)
-		}
-		s.TopMsgID = value
+		s.ReplyTo = value
 	}
 	{
 		value, err := DecodeInputMedia(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field media: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field media: %w", err)
 		}
 		s.Media = value
 	}
 	{
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field message: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field message: %w", err)
 		}
 		s.Message = value
 	}
 	{
 		value, err := b.Long()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field random_id: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field random_id: %w", err)
 		}
 		s.RandomID = value
 	}
 	if s.Flags.Has(2) {
 		value, err := DecodeReplyMarkup(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field reply_markup: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field reply_markup: %w", err)
 		}
 		s.ReplyMarkup = value
 	}
 	if s.Flags.Has(3) {
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field entities: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field entities: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -520,7 +591,7 @@ func (s *MessagesSendMediaRequest) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			value, err := DecodeMessageEntity(b)
 			if err != nil {
-				return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field entities: %w", err)
+				return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field entities: %w", err)
 			}
 			s.Entities = append(s.Entities, value)
 		}
@@ -528,16 +599,30 @@ func (s *MessagesSendMediaRequest) DecodeBare(b *bin.Buffer) error {
 	if s.Flags.Has(10) {
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field schedule_date: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field schedule_date: %w", err)
 		}
 		s.ScheduleDate = value
 	}
 	if s.Flags.Has(13) {
 		value, err := DecodeInputPeer(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.sendMedia#7547c966: field send_as: %w", err)
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field send_as: %w", err)
 		}
 		s.SendAs = value
+	}
+	if s.Flags.Has(17) {
+		value, err := DecodeInputQuickReplyShortcut(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field quick_reply_shortcut: %w", err)
+		}
+		s.QuickReplyShortcut = value
+	}
+	if s.Flags.Has(18) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode messages.sendMedia#7852834e: field effect: %w", err)
+		}
+		s.Effect = value
 	}
 	return nil
 }
@@ -637,6 +722,44 @@ func (s *MessagesSendMediaRequest) GetUpdateStickersetsOrder() (value bool) {
 	return s.Flags.Has(15)
 }
 
+// SetInvertMedia sets value of InvertMedia conditional field.
+func (s *MessagesSendMediaRequest) SetInvertMedia(value bool) {
+	if value {
+		s.Flags.Set(16)
+		s.InvertMedia = true
+	} else {
+		s.Flags.Unset(16)
+		s.InvertMedia = false
+	}
+}
+
+// GetInvertMedia returns value of InvertMedia conditional field.
+func (s *MessagesSendMediaRequest) GetInvertMedia() (value bool) {
+	if s == nil {
+		return
+	}
+	return s.Flags.Has(16)
+}
+
+// SetAllowPaidFloodskip sets value of AllowPaidFloodskip conditional field.
+func (s *MessagesSendMediaRequest) SetAllowPaidFloodskip(value bool) {
+	if value {
+		s.Flags.Set(19)
+		s.AllowPaidFloodskip = true
+	} else {
+		s.Flags.Unset(19)
+		s.AllowPaidFloodskip = false
+	}
+}
+
+// GetAllowPaidFloodskip returns value of AllowPaidFloodskip conditional field.
+func (s *MessagesSendMediaRequest) GetAllowPaidFloodskip() (value bool) {
+	if s == nil {
+		return
+	}
+	return s.Flags.Has(19)
+}
+
 // GetPeer returns value of Peer field.
 func (s *MessagesSendMediaRequest) GetPeer() (value InputPeerClass) {
 	if s == nil {
@@ -645,40 +768,22 @@ func (s *MessagesSendMediaRequest) GetPeer() (value InputPeerClass) {
 	return s.Peer
 }
 
-// SetReplyToMsgID sets value of ReplyToMsgID conditional field.
-func (s *MessagesSendMediaRequest) SetReplyToMsgID(value int) {
+// SetReplyTo sets value of ReplyTo conditional field.
+func (s *MessagesSendMediaRequest) SetReplyTo(value InputReplyToClass) {
 	s.Flags.Set(0)
-	s.ReplyToMsgID = value
+	s.ReplyTo = value
 }
 
-// GetReplyToMsgID returns value of ReplyToMsgID conditional field and
+// GetReplyTo returns value of ReplyTo conditional field and
 // boolean which is true if field was set.
-func (s *MessagesSendMediaRequest) GetReplyToMsgID() (value int, ok bool) {
+func (s *MessagesSendMediaRequest) GetReplyTo() (value InputReplyToClass, ok bool) {
 	if s == nil {
 		return
 	}
 	if !s.Flags.Has(0) {
 		return value, false
 	}
-	return s.ReplyToMsgID, true
-}
-
-// SetTopMsgID sets value of TopMsgID conditional field.
-func (s *MessagesSendMediaRequest) SetTopMsgID(value int) {
-	s.Flags.Set(9)
-	s.TopMsgID = value
-}
-
-// GetTopMsgID returns value of TopMsgID conditional field and
-// boolean which is true if field was set.
-func (s *MessagesSendMediaRequest) GetTopMsgID() (value int, ok bool) {
-	if s == nil {
-		return
-	}
-	if !s.Flags.Has(9) {
-		return value, false
-	}
-	return s.TopMsgID, true
+	return s.ReplyTo, true
 }
 
 // GetMedia returns value of Media field.
@@ -777,6 +882,42 @@ func (s *MessagesSendMediaRequest) GetSendAs() (value InputPeerClass, ok bool) {
 	return s.SendAs, true
 }
 
+// SetQuickReplyShortcut sets value of QuickReplyShortcut conditional field.
+func (s *MessagesSendMediaRequest) SetQuickReplyShortcut(value InputQuickReplyShortcutClass) {
+	s.Flags.Set(17)
+	s.QuickReplyShortcut = value
+}
+
+// GetQuickReplyShortcut returns value of QuickReplyShortcut conditional field and
+// boolean which is true if field was set.
+func (s *MessagesSendMediaRequest) GetQuickReplyShortcut() (value InputQuickReplyShortcutClass, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(17) {
+		return value, false
+	}
+	return s.QuickReplyShortcut, true
+}
+
+// SetEffect sets value of Effect conditional field.
+func (s *MessagesSendMediaRequest) SetEffect(value int64) {
+	s.Flags.Set(18)
+	s.Effect = value
+}
+
+// GetEffect returns value of Effect conditional field and
+// boolean which is true if field was set.
+func (s *MessagesSendMediaRequest) GetEffect() (value int64, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(18) {
+		return value, false
+	}
+	return s.Effect, true
+}
+
 // MapEntities returns field Entities wrapped in MessageEntityClassArray helper.
 func (s *MessagesSendMediaRequest) MapEntities() (value MessageEntityClassArray, ok bool) {
 	if !s.Flags.Has(3) {
@@ -785,31 +926,43 @@ func (s *MessagesSendMediaRequest) MapEntities() (value MessageEntityClassArray,
 	return MessageEntityClassArray(s.Entities), true
 }
 
-// MessagesSendMedia invokes method messages.sendMedia#7547c966 returning error if any.
+// MessagesSendMedia invokes method messages.sendMedia#7852834e returning error if any.
 // Send a media
 //
 // Possible errors:
 //
+//	400 BOT_GAMES_DISABLED: Games can't be sent to channels.
 //	400 BOT_PAYMENTS_DISABLED: Please enable bot payments in botfather before calling this method.
 //	400 BROADCAST_PUBLIC_VOTERS_FORBIDDEN: You can't forward polls with public voters.
+//	400 BUSINESS_PEER_INVALID: Messages can't be set to the specified peer through the current business connection.
+//	400 BUTTON_COPY_TEXT_INVALID: The specified keyboardButtonCopy.copy_text is invalid.
 //	400 BUTTON_DATA_INVALID: The data of one or more of the buttons you provided is invalid.
+//	400 BUTTON_POS_INVALID: The position of one of the keyboard buttons is invalid (i.e. a Game or Pay button not in the first position, and so on...).
 //	400 BUTTON_TYPE_INVALID: The type of one or more of the buttons you provided is invalid.
 //	400 BUTTON_URL_INVALID: Button URL invalid.
 //	400 CHANNEL_INVALID: The provided channel is invalid.
-//	400 CHANNEL_PRIVATE: You haven't joined this channel/supergroup.
-//	400 CHAT_ADMIN_REQUIRED: You must be an admin in this chat to do this.
+//	406 CHANNEL_PRIVATE: You haven't joined this channel/supergroup.
+//	403 CHAT_ADMIN_REQUIRED: You must be an admin in this chat to do this.
 //	400 CHAT_FORWARDS_RESTRICTED: You can't forward messages from a protected chat.
-//	403 CHAT_GUEST_SEND_FORBIDDEN: You join the discussion group before commenting, see here » for more info.
+//	403 CHAT_GUEST_SEND_FORBIDDEN: You join the discussion group before commenting, see here » for more info.
 //	400 CHAT_RESTRICTED: You can't send messages in this chat, you were restricted.
+//	403 CHAT_SEND_AUDIOS_FORBIDDEN: You can't send audio messages in this chat.
+//	403 CHAT_SEND_DOCS_FORBIDDEN: You can't send documents in this chat.
 //	403 CHAT_SEND_GIFS_FORBIDDEN: You can't send gifs in this chat.
 //	403 CHAT_SEND_MEDIA_FORBIDDEN: You can't send media in this chat.
+//	403 CHAT_SEND_PHOTOS_FORBIDDEN: You can't send photos in this chat.
+//	403 CHAT_SEND_PLAIN_FORBIDDEN: You can't send non-media (text) messages in this chat.
 //	403 CHAT_SEND_POLL_FORBIDDEN: You can't send polls in this chat.
+//	403 CHAT_SEND_ROUNDVIDEOS_FORBIDDEN: You can't send round videos to this chat.
 //	403 CHAT_SEND_STICKERS_FORBIDDEN: You can't send stickers in this chat.
+//	403 CHAT_SEND_VIDEOS_FORBIDDEN: You can't send videos in this chat.
+//	403 CHAT_SEND_VOICES_FORBIDDEN: You can't send voice recordings in this chat.
 //	403 CHAT_WRITE_FORBIDDEN: You can't write in this chat.
 //	400 CURRENCY_TOTAL_AMOUNT_INVALID: The total amount of all prices is invalid.
 //	400 DOCUMENT_INVALID: The specified document is invalid.
 //	400 EMOTICON_INVALID: The specified emoji is invalid.
-//	400 ENTITY_BOUNDS_INVALID: A specified entity offset or length is invalid, see here » for info on how to properly compute the entity offset/length.
+//	400 ENTITY_BOUNDS_INVALID: A specified entity offset or length is invalid, see here » for info on how to properly compute the entity offset/length.
+//	400 EXTENDED_MEDIA_AMOUNT_INVALID: The specified stars_amount of the passed inputMediaPaidMedia is invalid.
 //	400 EXTERNAL_URL_INVALID: External URL invalid.
 //	400 FILE_PARTS_INVALID: The number of file parts is invalid.
 //	400 FILE_PART_LENGTH_INVALID: The length of a file part is invalid.
@@ -817,11 +970,14 @@ func (s *MessagesSendMediaRequest) MapEntities() (value MessageEntityClassArray,
 //	400 FILE_REFERENCE_EXPIRED: File reference expired, it must be refetched as described in the documentation.
 //	400 GAME_BOT_INVALID: Bots can't send another bot's game.
 //	400 IMAGE_PROCESS_FAILED: Failure while processing image.
+//	400 INPUT_FILE_INVALID: The specified InputFile is invalid.
 //	400 INPUT_USER_DEACTIVATED: The specified user was deleted.
+//	400 INVOICE_PAYLOAD_INVALID: The specified invoice payload is invalid.
 //	400 MD5_CHECKSUM_INVALID: The MD5 checksums do not match.
 //	400 MEDIA_CAPTION_TOO_LONG: The caption is too long.
 //	400 MEDIA_EMPTY: The provided media object is invalid.
 //	400 MEDIA_INVALID: Media invalid.
+//	400 MESSAGE_EMPTY: The provided message is empty.
 //	400 MSG_ID_INVALID: Invalid message ID provided.
 //	400 PAYMENT_PROVIDER_INVALID: The specified payment provider is invalid.
 //	400 PEER_ID_INVALID: The provided peer id is invalid.
@@ -834,27 +990,40 @@ func (s *MessagesSendMediaRequest) MapEntities() (value MessageEntityClassArray,
 //	400 POLL_OPTION_INVALID: Invalid poll option provided.
 //	400 POLL_QUESTION_INVALID: One of the poll questions is not acceptable.
 //	403 PREMIUM_ACCOUNT_REQUIRED: A premium account is required to execute this action.
+//	403 PRIVACY_PREMIUM_REQUIRED: You need a Telegram Premium subscription to send a message to this user.
+//	400 QUICK_REPLIES_TOO_MUCH: A maximum of appConfig.quick_replies_limit shortcuts may be created, the limit was reached.
 //	400 QUIZ_CORRECT_ANSWERS_EMPTY: No correct quiz answer was specified.
 //	400 QUIZ_CORRECT_ANSWERS_TOO_MUCH: You specified too many correct answers in a quiz, quizzes can only have one right answer!
 //	400 QUIZ_CORRECT_ANSWER_INVALID: An invalid value was provided to the correct_answers field.
 //	400 QUIZ_MULTIPLE_INVALID: Quizzes can't have the multiple_choice flag set!
 //	500 RANDOM_ID_DUPLICATE: You provided a random ID that was already used.
 //	400 REPLY_MARKUP_BUY_EMPTY: Reply markup for buy button empty.
+//	400 REPLY_MARKUP_GAME_EMPTY: A game message is being edited, but the newly provided keyboard doesn't have a keyboardButtonGame button.
 //	400 REPLY_MARKUP_INVALID: The provided reply markup is invalid.
 //	400 REPLY_MARKUP_TOO_LONG: The specified reply_markup is too long.
+//	400 REPLY_MESSAGES_TOO_MUCH: Each shortcut can contain a maximum of appConfig.quick_reply_messages_limit messages, the limit was reached.
 //	400 SCHEDULE_BOT_NOT_ALLOWED: Bots cannot schedule messages.
 //	400 SCHEDULE_DATE_TOO_LATE: You can't schedule a message this far in the future.
 //	400 SCHEDULE_TOO_MUCH: There are too many scheduled messages.
 //	400 SEND_AS_PEER_INVALID: You can't send messages as the specified peer.
 //	420 SLOWMODE_WAIT_%d: Slowmode is enabled in this chat: wait %d seconds before sending another message to this chat.
+//	400 STARS_INVOICE_INVALID: The specified Telegram Star invoice is invalid.
+//	400 STORY_ID_INVALID: The specified story ID is invalid.
+//	400 SUBSCRIPTION_EXPORT_MISSING: You cannot send a bot subscription invoice directly, you may only create invoice links using payments.exportInvoice.
+//	400 TERMS_URL_INVALID: The specified invoice.terms_url is invalid.
+//	406 TOPIC_CLOSED: This topic was closed, you can't send messages to it anymore.
+//	406 TOPIC_DELETED: The specified topic was deleted.
 //	400 TTL_MEDIA_INVALID: Invalid media Time To Live was provided.
 //	400 USER_BANNED_IN_CHANNEL: You're banned from sending messages in supergroups/channels.
 //	403 USER_IS_BLOCKED: You were blocked by this user.
 //	400 USER_IS_BOT: Bots can't send messages to other bots.
 //	400 VIDEO_CONTENT_TYPE_INVALID: The video's content type is invalid.
+//	400 VOICE_MESSAGES_FORBIDDEN: This user's privacy settings forbid you from sending voice messages.
 //	400 WEBDOCUMENT_MIME_INVALID: Invalid webdocument mime type provided.
 //	400 WEBPAGE_CURL_FAILED: Failure while fetching the webpage with cURL.
 //	400 WEBPAGE_MEDIA_EMPTY: Webpage media empty.
+//	400 WEBPAGE_NOT_FOUND: A preview for the specified webpage url could not be generated.
+//	400 WEBPAGE_URL_INVALID: The specified webpage url is invalid.
 //	400 YOU_BLOCKED_USER: You blocked this user.
 //
 // See https://core.telegram.org/method/messages.sendMedia for reference.

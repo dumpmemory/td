@@ -47,6 +47,104 @@ func NewQueryBuilder(raw *tg.Client) *QueryBuilder {
 	return &QueryBuilder{raw: raw}
 }
 
+// ChannelsSearchPostsQueryBuilder is query builder of ChannelsSearchPosts.
+type ChannelsSearchPostsQueryBuilder struct {
+	raw        *tg.Client
+	req        tg.ChannelsSearchPostsRequest
+	batchSize  int
+	offsetID   int
+	offsetPeer tg.InputPeerClass
+	offsetRate int
+}
+
+// ChannelsSearchPosts creates query builder of ChannelsSearchPosts.
+func (q *QueryBuilder) ChannelsSearchPosts() *ChannelsSearchPostsQueryBuilder {
+	b := &ChannelsSearchPostsQueryBuilder{
+		raw:       q.raw,
+		batchSize: 1,
+		req:       tg.ChannelsSearchPostsRequest{},
+	}
+
+	return b
+}
+
+// BatchSize sets buffer of message loaded from one request.
+// Be carefully, when set this limit, because Telegram does not return error if limit is too big,
+// so results can be incorrect.
+func (b *ChannelsSearchPostsQueryBuilder) BatchSize(batchSize int) *ChannelsSearchPostsQueryBuilder {
+	b.batchSize = batchSize
+	return b
+}
+
+// OffsetID sets offsetID from which iterate start.
+func (b *ChannelsSearchPostsQueryBuilder) OffsetID(offsetID int) *ChannelsSearchPostsQueryBuilder {
+	b.offsetID = offsetID
+	return b
+}
+
+// Hashtag sets Hashtag field of ChannelsSearchPosts query.
+func (b *ChannelsSearchPostsQueryBuilder) Hashtag(paramHashtag string) *ChannelsSearchPostsQueryBuilder {
+	b.req.Hashtag = paramHashtag
+	return b
+}
+
+// Query implements Query interface.
+func (b *ChannelsSearchPostsQueryBuilder) Query(ctx context.Context, req Request) (tg.MessagesMessagesClass, error) {
+	r := &tg.ChannelsSearchPostsRequest{
+		Limit: req.Limit,
+	}
+
+	r.Hashtag = b.req.Hashtag
+	r.OffsetID = req.OffsetID
+	r.OffsetPeer = req.OffsetPeer
+	r.OffsetRate = req.OffsetRate
+	return b.raw.ChannelsSearchPosts(ctx, r)
+}
+
+// Iter returns iterator using built query.
+func (b *ChannelsSearchPostsQueryBuilder) Iter() *Iterator {
+	iter := NewIterator(b, b.batchSize)
+	iter = iter.OffsetID(b.offsetID)
+	return iter
+}
+
+// ForEach calls given callback on each iterator element.
+func (b *ChannelsSearchPostsQueryBuilder) ForEach(ctx context.Context, cb func(context.Context, Elem) error) error {
+	iter := b.Iter()
+	for iter.Next(ctx) {
+		if err := cb(ctx, iter.Value()); err != nil {
+			return err
+		}
+	}
+	return iter.Err()
+}
+
+// Count fetches remote state to get number of elements.
+func (b *ChannelsSearchPostsQueryBuilder) Count(ctx context.Context) (int, error) {
+	iter := b.Iter()
+	c, err := iter.Total(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "get total")
+	}
+	return c, nil
+}
+
+// Collect creates iterator and collects all elements to slice.
+func (b *ChannelsSearchPostsQueryBuilder) Collect(ctx context.Context) ([]Elem, error) {
+	iter := b.Iter()
+	c, err := iter.Total(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get total")
+	}
+
+	r := make([]Elem, 0, c)
+	for iter.Next(ctx) {
+		r = append(r, iter.Value())
+	}
+
+	return r, iter.Err()
+}
+
 // GetHistoryQueryBuilder is query builder of MessagesGetHistory.
 type GetHistoryQueryBuilder struct {
 	raw        *tg.Client
@@ -358,6 +456,114 @@ func (b *GetRepliesQueryBuilder) Collect(ctx context.Context) ([]Elem, error) {
 	return r, iter.Err()
 }
 
+// GetSavedHistoryQueryBuilder is query builder of MessagesGetSavedHistory.
+type GetSavedHistoryQueryBuilder struct {
+	raw        *tg.Client
+	req        tg.MessagesGetSavedHistoryRequest
+	batchSize  int
+	addOffset  int
+	offsetDate int
+	offsetID   int
+}
+
+// GetSavedHistory creates query builder of MessagesGetSavedHistory.
+func (q *QueryBuilder) GetSavedHistory(paramPeer tg.InputPeerClass) *GetSavedHistoryQueryBuilder {
+	b := &GetSavedHistoryQueryBuilder{
+		raw:       q.raw,
+		batchSize: 1,
+		req: tg.MessagesGetSavedHistoryRequest{
+			Peer: &tg.InputPeerEmpty{},
+		},
+	}
+
+	b.req.Peer = paramPeer
+	return b
+}
+
+// BatchSize sets buffer of message loaded from one request.
+// Be carefully, when set this limit, because Telegram does not return error if limit is too big,
+// so results can be incorrect.
+func (b *GetSavedHistoryQueryBuilder) BatchSize(batchSize int) *GetSavedHistoryQueryBuilder {
+	b.batchSize = batchSize
+	return b
+}
+
+// OffsetDate sets offsetDate from which iterate start.
+func (b *GetSavedHistoryQueryBuilder) OffsetDate(offsetDate int) *GetSavedHistoryQueryBuilder {
+	b.offsetDate = offsetDate
+	return b
+}
+
+// OffsetID sets offsetID from which iterate start.
+func (b *GetSavedHistoryQueryBuilder) OffsetID(offsetID int) *GetSavedHistoryQueryBuilder {
+	b.offsetID = offsetID
+	return b
+}
+
+// Peer sets Peer field of GetSavedHistory query.
+func (b *GetSavedHistoryQueryBuilder) Peer(paramPeer tg.InputPeerClass) *GetSavedHistoryQueryBuilder {
+	b.req.Peer = paramPeer
+	return b
+}
+
+// Query implements Query interface.
+func (b *GetSavedHistoryQueryBuilder) Query(ctx context.Context, req Request) (tg.MessagesMessagesClass, error) {
+	r := &tg.MessagesGetSavedHistoryRequest{
+		Limit: req.Limit,
+	}
+
+	r.Peer = b.req.Peer
+	r.AddOffset = req.AddOffset
+	r.OffsetDate = req.OffsetDate
+	r.OffsetID = req.OffsetID
+	return b.raw.MessagesGetSavedHistory(ctx, r)
+}
+
+// Iter returns iterator using built query.
+func (b *GetSavedHistoryQueryBuilder) Iter() *Iterator {
+	iter := NewIterator(b, b.batchSize)
+	iter = iter.OffsetDate(b.offsetDate)
+	iter = iter.OffsetID(b.offsetID)
+	return iter
+}
+
+// ForEach calls given callback on each iterator element.
+func (b *GetSavedHistoryQueryBuilder) ForEach(ctx context.Context, cb func(context.Context, Elem) error) error {
+	iter := b.Iter()
+	for iter.Next(ctx) {
+		if err := cb(ctx, iter.Value()); err != nil {
+			return err
+		}
+	}
+	return iter.Err()
+}
+
+// Count fetches remote state to get number of elements.
+func (b *GetSavedHistoryQueryBuilder) Count(ctx context.Context) (int, error) {
+	iter := b.Iter()
+	c, err := iter.Total(ctx)
+	if err != nil {
+		return 0, errors.Wrap(err, "get total")
+	}
+	return c, nil
+}
+
+// Collect creates iterator and collects all elements to slice.
+func (b *GetSavedHistoryQueryBuilder) Collect(ctx context.Context) ([]Elem, error) {
+	iter := b.Iter()
+	c, err := iter.Total(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get total")
+	}
+
+	r := make([]Elem, 0, c)
+	for iter.Next(ctx) {
+		r = append(r, iter.Value())
+	}
+
+	return r, iter.Err()
+}
+
 // GetUnreadMentionsQueryBuilder is query builder of MessagesGetUnreadMentions.
 type GetUnreadMentionsQueryBuilder struct {
 	raw       *tg.Client
@@ -585,9 +791,10 @@ func (q *QueryBuilder) Search(paramPeer tg.InputPeerClass) *SearchQueryBuilder {
 		raw:       q.raw,
 		batchSize: 1,
 		req: tg.MessagesSearchRequest{
-			Filter: &tg.InputMessagesFilterEmpty{},
-			FromID: &tg.InputPeerEmpty{},
-			Peer:   &tg.InputPeerEmpty{},
+			Filter:      &tg.InputMessagesFilterEmpty{},
+			FromID:      &tg.InputPeerEmpty{},
+			Peer:        &tg.InputPeerEmpty{},
+			SavedPeerID: &tg.InputPeerEmpty{},
 		},
 	}
 
@@ -642,6 +849,18 @@ func (b *SearchQueryBuilder) Peer(paramPeer tg.InputPeerClass) *SearchQueryBuild
 // Q sets Q field of Search query.
 func (b *SearchQueryBuilder) Q(paramQ string) *SearchQueryBuilder {
 	b.req.Q = paramQ
+	return b
+}
+
+// SavedPeerID sets SavedPeerID field of Search query.
+func (b *SearchQueryBuilder) SavedPeerID(paramSavedPeerID tg.InputPeerClass) *SearchQueryBuilder {
+	b.req.SavedPeerID = paramSavedPeerID
+	return b
+}
+
+// SavedReaction sets SavedReaction field of Search query.
+func (b *SearchQueryBuilder) SavedReaction(paramSavedReaction []tg.ReactionClass) *SearchQueryBuilder {
+	b.req.SavedReaction = paramSavedReaction
 	return b
 }
 
@@ -761,6 +980,8 @@ func (b *SearchQueryBuilder) Query(ctx context.Context, req Request) (tg.Message
 	r.MinDate = b.req.MinDate
 	r.Peer = b.req.Peer
 	r.Q = b.req.Q
+	r.SavedPeerID = b.req.SavedPeerID
+	r.SavedReaction = b.req.SavedReaction
 	r.TopMsgID = b.req.TopMsgID
 	r.AddOffset = req.AddOffset
 	r.OffsetID = req.OffsetID
@@ -848,6 +1069,12 @@ func (b *SearchGlobalQueryBuilder) OffsetID(offsetID int) *SearchGlobalQueryBuil
 	return b
 }
 
+// BroadcastsOnly sets BroadcastsOnly field of SearchGlobal query.
+func (b *SearchGlobalQueryBuilder) BroadcastsOnly(paramBroadcastsOnly bool) *SearchGlobalQueryBuilder {
+	b.req.BroadcastsOnly = paramBroadcastsOnly
+	return b
+}
+
 // Filter sets Filter field of SearchGlobal query.
 func (b *SearchGlobalQueryBuilder) Filter(paramFilter tg.MessagesFilterClass) *SearchGlobalQueryBuilder {
 	b.req.Filter = paramFilter
@@ -857,6 +1084,12 @@ func (b *SearchGlobalQueryBuilder) Filter(paramFilter tg.MessagesFilterClass) *S
 // FolderID sets FolderID field of SearchGlobal query.
 func (b *SearchGlobalQueryBuilder) FolderID(paramFolderID int) *SearchGlobalQueryBuilder {
 	b.req.FolderID = paramFolderID
+	return b
+}
+
+// GroupsOnly sets GroupsOnly field of SearchGlobal query.
+func (b *SearchGlobalQueryBuilder) GroupsOnly(paramGroupsOnly bool) *SearchGlobalQueryBuilder {
+	b.req.GroupsOnly = paramGroupsOnly
 	return b
 }
 
@@ -875,6 +1108,12 @@ func (b *SearchGlobalQueryBuilder) MinDate(paramMinDate int) *SearchGlobalQueryB
 // Q sets Q field of SearchGlobal query.
 func (b *SearchGlobalQueryBuilder) Q(paramQ string) *SearchGlobalQueryBuilder {
 	b.req.Q = paramQ
+	return b
+}
+
+// UsersOnly sets UsersOnly field of SearchGlobal query.
+func (b *SearchGlobalQueryBuilder) UsersOnly(paramUsersOnly bool) *SearchGlobalQueryBuilder {
+	b.req.UsersOnly = paramUsersOnly
 	return b
 }
 
@@ -982,11 +1221,14 @@ func (b *SearchGlobalQueryBuilder) Query(ctx context.Context, req Request) (tg.M
 		Limit: req.Limit,
 	}
 
+	r.BroadcastsOnly = b.req.BroadcastsOnly
 	r.Filter = b.req.Filter
 	r.FolderID = b.req.FolderID
+	r.GroupsOnly = b.req.GroupsOnly
 	r.MaxDate = b.req.MaxDate
 	r.MinDate = b.req.MinDate
 	r.Q = b.req.Q
+	r.UsersOnly = b.req.UsersOnly
 	r.OffsetID = req.OffsetID
 	r.OffsetPeer = req.OffsetPeer
 	r.OffsetRate = req.OffsetRate
@@ -1215,112 +1457,6 @@ func (b *SearchSentMediaQueryBuilder) Count(ctx context.Context) (int, error) {
 
 // Collect creates iterator and collects all elements to slice.
 func (b *SearchSentMediaQueryBuilder) Collect(ctx context.Context) ([]Elem, error) {
-	iter := b.Iter()
-	c, err := iter.Total(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "get total")
-	}
-
-	r := make([]Elem, 0, c)
-	for iter.Next(ctx) {
-		r = append(r, iter.Value())
-	}
-
-	return r, iter.Err()
-}
-
-// StatsGetMessagePublicForwardsQueryBuilder is query builder of StatsGetMessagePublicForwards.
-type StatsGetMessagePublicForwardsQueryBuilder struct {
-	raw        *tg.Client
-	req        tg.StatsGetMessagePublicForwardsRequest
-	batchSize  int
-	offsetID   int
-	offsetPeer tg.InputPeerClass
-	offsetRate int
-}
-
-// StatsGetMessagePublicForwards creates query builder of StatsGetMessagePublicForwards.
-func (q *QueryBuilder) StatsGetMessagePublicForwards(paramChannel tg.InputChannelClass) *StatsGetMessagePublicForwardsQueryBuilder {
-	b := &StatsGetMessagePublicForwardsQueryBuilder{
-		raw:       q.raw,
-		batchSize: 1,
-		req:       tg.StatsGetMessagePublicForwardsRequest{},
-	}
-
-	b.req.Channel = paramChannel
-	return b
-}
-
-// BatchSize sets buffer of message loaded from one request.
-// Be carefully, when set this limit, because Telegram does not return error if limit is too big,
-// so results can be incorrect.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) BatchSize(batchSize int) *StatsGetMessagePublicForwardsQueryBuilder {
-	b.batchSize = batchSize
-	return b
-}
-
-// OffsetID sets offsetID from which iterate start.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) OffsetID(offsetID int) *StatsGetMessagePublicForwardsQueryBuilder {
-	b.offsetID = offsetID
-	return b
-}
-
-// Channel sets Channel field of StatsGetMessagePublicForwards query.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) Channel(paramChannel tg.InputChannelClass) *StatsGetMessagePublicForwardsQueryBuilder {
-	b.req.Channel = paramChannel
-	return b
-}
-
-// MsgID sets MsgID field of StatsGetMessagePublicForwards query.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) MsgID(paramMsgID int) *StatsGetMessagePublicForwardsQueryBuilder {
-	b.req.MsgID = paramMsgID
-	return b
-}
-
-// Query implements Query interface.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) Query(ctx context.Context, req Request) (tg.MessagesMessagesClass, error) {
-	r := &tg.StatsGetMessagePublicForwardsRequest{
-		Limit: req.Limit,
-	}
-
-	r.Channel = b.req.Channel
-	r.MsgID = b.req.MsgID
-	r.OffsetID = req.OffsetID
-	r.OffsetPeer = req.OffsetPeer
-	r.OffsetRate = req.OffsetRate
-	return b.raw.StatsGetMessagePublicForwards(ctx, r)
-}
-
-// Iter returns iterator using built query.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) Iter() *Iterator {
-	iter := NewIterator(b, b.batchSize)
-	iter = iter.OffsetID(b.offsetID)
-	return iter
-}
-
-// ForEach calls given callback on each iterator element.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) ForEach(ctx context.Context, cb func(context.Context, Elem) error) error {
-	iter := b.Iter()
-	for iter.Next(ctx) {
-		if err := cb(ctx, iter.Value()); err != nil {
-			return err
-		}
-	}
-	return iter.Err()
-}
-
-// Count fetches remote state to get number of elements.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) Count(ctx context.Context) (int, error) {
-	iter := b.Iter()
-	c, err := iter.Total(ctx)
-	if err != nil {
-		return 0, errors.Wrap(err, "get total")
-	}
-	return c, nil
-}
-
-// Collect creates iterator and collects all elements to slice.
-func (b *StatsGetMessagePublicForwardsQueryBuilder) Collect(ctx context.Context) ([]Elem, error) {
 	iter := b.Iter()
 	c, err := iter.Total(ctx)
 	if err != nil {

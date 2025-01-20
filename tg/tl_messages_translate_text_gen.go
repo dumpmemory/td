@@ -32,7 +32,12 @@ var (
 )
 
 // MessagesTranslateTextRequest represents TL type `messages.translateText#63183030`.
-// Translate a given text
+// Translate a given text.
+// Styled text entities¹ will only be preserved for Telegram Premium² users.
+//
+// Links:
+//  1. https://core.telegram.org/api/entities
+//  2. https://core.telegram.org/api/premium
 //
 // See https://core.telegram.org/method/messages.translateText for reference.
 type MessagesTranslateTextRequest struct {
@@ -45,11 +50,11 @@ type MessagesTranslateTextRequest struct {
 	//
 	// Use SetPeer and GetPeer helpers.
 	Peer InputPeerClass
-	// ID field of MessagesTranslateTextRequest.
+	// A list of message IDs to translate
 	//
 	// Use SetID and GetID helpers.
 	ID []int
-	// The text to translate
+	// A list of styled messages to translate
 	//
 	// Use SetText and GetText helpers.
 	Text []TextWithEntities
@@ -360,14 +365,22 @@ func (t *MessagesTranslateTextRequest) GetToLang() (value string) {
 }
 
 // MessagesTranslateText invokes method messages.translateText#63183030 returning error if any.
-// Translate a given text
+// Translate a given text.
+// Styled text entities¹ will only be preserved for Telegram Premium² users.
+//
+// Links:
+//  1. https://core.telegram.org/api/entities
+//  2. https://core.telegram.org/api/premium
 //
 // Possible errors:
 //
 //	400 INPUT_TEXT_EMPTY: The specified text is empty.
+//	400 INPUT_TEXT_TOO_LONG: The specified text is too long.
 //	400 MSG_ID_INVALID: Invalid message ID provided.
 //	400 PEER_ID_INVALID: The provided peer id is invalid.
 //	400 TO_LANG_INVALID: The specified destination language is invalid.
+//	500 TRANSLATE_REQ_FAILED: Translation failed, please try again later.
+//	400 TRANSLATE_REQ_QUOTA_EXCEEDED: Translation is currently unavailable due to a temporary server-side lack of resources.
 //
 // See https://core.telegram.org/method/messages.translateText for reference.
 func (c *Client) MessagesTranslateText(ctx context.Context, request *MessagesTranslateTextRequest) (*MessagesTranslateResult, error) {

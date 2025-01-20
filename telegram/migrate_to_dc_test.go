@@ -13,10 +13,10 @@ import (
 
 	"github.com/gotd/td/bin"
 	"github.com/gotd/td/clock"
-	"github.com/gotd/td/internal/mtproto"
-	"github.com/gotd/td/internal/pool"
-	"github.com/gotd/td/internal/rpc"
-	"github.com/gotd/td/internal/tdsync"
+	"github.com/gotd/td/mtproto"
+	"github.com/gotd/td/pool"
+	"github.com/gotd/td/rpc"
+	"github.com/gotd/td/tdsync"
 	"github.com/gotd/td/telegram/internal/manager"
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
@@ -110,13 +110,13 @@ func newMigrationClient(t *testing.T, h migrationTestHandler) *Client {
 		session: pool.NewSyncSession(pool.Session{
 			DC: 2,
 		}),
-		connBackoff:      defaultBackoff(clock.System),
+		newConnBackoff:   defaultBackoff(clock.System),
 		ctx:              context.Background(),
 		cancel:           func() {},
 		migrationTimeout: 10 * time.Second,
 	}
 	client.init()
-	client.conn = client.createConn(0, manager.ConnModeUpdates, nil)
+	client.conn = client.createConn(0, manager.ConnModeUpdates, nil, nil)
 	client.cfg.Store(cfg)
 	return client
 }

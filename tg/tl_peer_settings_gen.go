@@ -31,9 +31,13 @@ var (
 	_ = tdjson.Encoder{}
 )
 
-// PeerSettings represents TL type `peerSettings#a518110d`.
+// PeerSettings represents TL type `peerSettings#acd66c5e`.
 // List of actions that are possible when interacting with this user, to be shown as
-// suggested actions in the chat bar
+// suggested actions in the chat action bar »¹, see here »² for more info.
+//
+// Links:
+//  1. https://core.telegram.org/api/action-bar
+//  2. https://core.telegram.org/api/action-bar
 //
 // See https://core.telegram.org/constructor/peerSettings for reference.
 type PeerSettings struct {
@@ -70,6 +74,22 @@ type PeerSettings struct {
 	//  1) https://core.telegram.org/api/invites#join-requests
 	//  2) https://core.telegram.org/api/invites#join-requests
 	RequestChatBroadcast bool
+	// This flag is set if both business_bot_id and business_bot_manage_url are set and all
+	// connected business bots »¹ were paused in this chat using account
+	// toggleConnectedBotPaused »².
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/business#connected-bots
+	//  2) https://core.telegram.org/method/account.toggleConnectedBotPaused
+	BusinessBotPaused bool
+	// This flag is set if both business_bot_id and business_bot_manage_url are set and
+	// connected business bots »¹ can reply to messages in this chat, as specified by the
+	// settings during initial configuration².
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/business#connected-bots
+	//  2) https://core.telegram.org/api/business#connected-bots
+	BusinessBotCanReply bool
 	// Distance in meters between us and this peer
 	//
 	// Use SetGeoDistance and GetGeoDistance helpers.
@@ -88,10 +108,26 @@ type PeerSettings struct {
 	//
 	// Use SetRequestChatDate and GetRequestChatDate helpers.
 	RequestChatDate int
+	// Contains the ID of the business bot »¹ managing this chat, used to display info
+	// about the bot in the action bar.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/business#connected-bots
+	//
+	// Use SetBusinessBotID and GetBusinessBotID helpers.
+	BusinessBotID int64
+	// Contains a deep link »¹, used to open a management menu in the business bot. This
+	// flag is set if and only if business_bot_id is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/links
+	//
+	// Use SetBusinessBotManageURL and GetBusinessBotManageURL helpers.
+	BusinessBotManageURL string
 }
 
 // PeerSettingsTypeID is TL type id of PeerSettings.
-const PeerSettingsTypeID = 0xa518110d
+const PeerSettingsTypeID = 0xacd66c5e
 
 // Ensuring interfaces in compile-time for PeerSettings.
 var (
@@ -135,6 +171,12 @@ func (p *PeerSettings) Zero() bool {
 	if !(p.RequestChatBroadcast == false) {
 		return false
 	}
+	if !(p.BusinessBotPaused == false) {
+		return false
+	}
+	if !(p.BusinessBotCanReply == false) {
+		return false
+	}
 	if !(p.GeoDistance == 0) {
 		return false
 	}
@@ -142,6 +184,12 @@ func (p *PeerSettings) Zero() bool {
 		return false
 	}
 	if !(p.RequestChatDate == 0) {
+		return false
+	}
+	if !(p.BusinessBotID == 0) {
+		return false
+	}
+	if !(p.BusinessBotManageURL == "") {
 		return false
 	}
 
@@ -168,9 +216,13 @@ func (p *PeerSettings) FillFrom(from interface {
 	GetAutoarchived() (value bool)
 	GetInviteMembers() (value bool)
 	GetRequestChatBroadcast() (value bool)
+	GetBusinessBotPaused() (value bool)
+	GetBusinessBotCanReply() (value bool)
 	GetGeoDistance() (value int, ok bool)
 	GetRequestChatTitle() (value string, ok bool)
 	GetRequestChatDate() (value int, ok bool)
+	GetBusinessBotID() (value int64, ok bool)
+	GetBusinessBotManageURL() (value string, ok bool)
 }) {
 	p.ReportSpam = from.GetReportSpam()
 	p.AddContact = from.GetAddContact()
@@ -181,6 +233,8 @@ func (p *PeerSettings) FillFrom(from interface {
 	p.Autoarchived = from.GetAutoarchived()
 	p.InviteMembers = from.GetInviteMembers()
 	p.RequestChatBroadcast = from.GetRequestChatBroadcast()
+	p.BusinessBotPaused = from.GetBusinessBotPaused()
+	p.BusinessBotCanReply = from.GetBusinessBotCanReply()
 	if val, ok := from.GetGeoDistance(); ok {
 		p.GeoDistance = val
 	}
@@ -191,6 +245,14 @@ func (p *PeerSettings) FillFrom(from interface {
 
 	if val, ok := from.GetRequestChatDate(); ok {
 		p.RequestChatDate = val
+	}
+
+	if val, ok := from.GetBusinessBotID(); ok {
+		p.BusinessBotID = val
+	}
+
+	if val, ok := from.GetBusinessBotManageURL(); ok {
+		p.BusinessBotManageURL = val
 	}
 
 }
@@ -264,6 +326,16 @@ func (p *PeerSettings) TypeInfo() tdp.Type {
 			Null:       !p.Flags.Has(10),
 		},
 		{
+			Name:       "BusinessBotPaused",
+			SchemaName: "business_bot_paused",
+			Null:       !p.Flags.Has(11),
+		},
+		{
+			Name:       "BusinessBotCanReply",
+			SchemaName: "business_bot_can_reply",
+			Null:       !p.Flags.Has(12),
+		},
+		{
 			Name:       "GeoDistance",
 			SchemaName: "geo_distance",
 			Null:       !p.Flags.Has(6),
@@ -277,6 +349,16 @@ func (p *PeerSettings) TypeInfo() tdp.Type {
 			Name:       "RequestChatDate",
 			SchemaName: "request_chat_date",
 			Null:       !p.Flags.Has(9),
+		},
+		{
+			Name:       "BusinessBotID",
+			SchemaName: "business_bot_id",
+			Null:       !p.Flags.Has(13),
+		},
+		{
+			Name:       "BusinessBotManageURL",
+			SchemaName: "business_bot_manage_url",
+			Null:       !p.Flags.Has(13),
 		},
 	}
 	return typ
@@ -311,6 +393,12 @@ func (p *PeerSettings) SetFlags() {
 	if !(p.RequestChatBroadcast == false) {
 		p.Flags.Set(10)
 	}
+	if !(p.BusinessBotPaused == false) {
+		p.Flags.Set(11)
+	}
+	if !(p.BusinessBotCanReply == false) {
+		p.Flags.Set(12)
+	}
 	if !(p.GeoDistance == 0) {
 		p.Flags.Set(6)
 	}
@@ -320,12 +408,18 @@ func (p *PeerSettings) SetFlags() {
 	if !(p.RequestChatDate == 0) {
 		p.Flags.Set(9)
 	}
+	if !(p.BusinessBotID == 0) {
+		p.Flags.Set(13)
+	}
+	if !(p.BusinessBotManageURL == "") {
+		p.Flags.Set(13)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (p *PeerSettings) Encode(b *bin.Buffer) error {
 	if p == nil {
-		return fmt.Errorf("can't encode peerSettings#a518110d as nil")
+		return fmt.Errorf("can't encode peerSettings#acd66c5e as nil")
 	}
 	b.PutID(PeerSettingsTypeID)
 	return p.EncodeBare(b)
@@ -334,11 +428,11 @@ func (p *PeerSettings) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (p *PeerSettings) EncodeBare(b *bin.Buffer) error {
 	if p == nil {
-		return fmt.Errorf("can't encode peerSettings#a518110d as nil")
+		return fmt.Errorf("can't encode peerSettings#acd66c5e as nil")
 	}
 	p.SetFlags()
 	if err := p.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode peerSettings#a518110d: field flags: %w", err)
+		return fmt.Errorf("unable to encode peerSettings#acd66c5e: field flags: %w", err)
 	}
 	if p.Flags.Has(6) {
 		b.PutInt(p.GeoDistance)
@@ -349,16 +443,22 @@ func (p *PeerSettings) EncodeBare(b *bin.Buffer) error {
 	if p.Flags.Has(9) {
 		b.PutInt(p.RequestChatDate)
 	}
+	if p.Flags.Has(13) {
+		b.PutLong(p.BusinessBotID)
+	}
+	if p.Flags.Has(13) {
+		b.PutString(p.BusinessBotManageURL)
+	}
 	return nil
 }
 
 // Decode implements bin.Decoder.
 func (p *PeerSettings) Decode(b *bin.Buffer) error {
 	if p == nil {
-		return fmt.Errorf("can't decode peerSettings#a518110d to nil")
+		return fmt.Errorf("can't decode peerSettings#acd66c5e to nil")
 	}
 	if err := b.ConsumeID(PeerSettingsTypeID); err != nil {
-		return fmt.Errorf("unable to decode peerSettings#a518110d: %w", err)
+		return fmt.Errorf("unable to decode peerSettings#acd66c5e: %w", err)
 	}
 	return p.DecodeBare(b)
 }
@@ -366,11 +466,11 @@ func (p *PeerSettings) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (p *PeerSettings) DecodeBare(b *bin.Buffer) error {
 	if p == nil {
-		return fmt.Errorf("can't decode peerSettings#a518110d to nil")
+		return fmt.Errorf("can't decode peerSettings#acd66c5e to nil")
 	}
 	{
 		if err := p.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode peerSettings#a518110d: field flags: %w", err)
+			return fmt.Errorf("unable to decode peerSettings#acd66c5e: field flags: %w", err)
 		}
 	}
 	p.ReportSpam = p.Flags.Has(0)
@@ -382,26 +482,42 @@ func (p *PeerSettings) DecodeBare(b *bin.Buffer) error {
 	p.Autoarchived = p.Flags.Has(7)
 	p.InviteMembers = p.Flags.Has(8)
 	p.RequestChatBroadcast = p.Flags.Has(10)
+	p.BusinessBotPaused = p.Flags.Has(11)
+	p.BusinessBotCanReply = p.Flags.Has(12)
 	if p.Flags.Has(6) {
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode peerSettings#a518110d: field geo_distance: %w", err)
+			return fmt.Errorf("unable to decode peerSettings#acd66c5e: field geo_distance: %w", err)
 		}
 		p.GeoDistance = value
 	}
 	if p.Flags.Has(9) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode peerSettings#a518110d: field request_chat_title: %w", err)
+			return fmt.Errorf("unable to decode peerSettings#acd66c5e: field request_chat_title: %w", err)
 		}
 		p.RequestChatTitle = value
 	}
 	if p.Flags.Has(9) {
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode peerSettings#a518110d: field request_chat_date: %w", err)
+			return fmt.Errorf("unable to decode peerSettings#acd66c5e: field request_chat_date: %w", err)
 		}
 		p.RequestChatDate = value
+	}
+	if p.Flags.Has(13) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode peerSettings#acd66c5e: field business_bot_id: %w", err)
+		}
+		p.BusinessBotID = value
+	}
+	if p.Flags.Has(13) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode peerSettings#acd66c5e: field business_bot_manage_url: %w", err)
+		}
+		p.BusinessBotManageURL = value
 	}
 	return nil
 }
@@ -577,6 +693,44 @@ func (p *PeerSettings) GetRequestChatBroadcast() (value bool) {
 	return p.Flags.Has(10)
 }
 
+// SetBusinessBotPaused sets value of BusinessBotPaused conditional field.
+func (p *PeerSettings) SetBusinessBotPaused(value bool) {
+	if value {
+		p.Flags.Set(11)
+		p.BusinessBotPaused = true
+	} else {
+		p.Flags.Unset(11)
+		p.BusinessBotPaused = false
+	}
+}
+
+// GetBusinessBotPaused returns value of BusinessBotPaused conditional field.
+func (p *PeerSettings) GetBusinessBotPaused() (value bool) {
+	if p == nil {
+		return
+	}
+	return p.Flags.Has(11)
+}
+
+// SetBusinessBotCanReply sets value of BusinessBotCanReply conditional field.
+func (p *PeerSettings) SetBusinessBotCanReply(value bool) {
+	if value {
+		p.Flags.Set(12)
+		p.BusinessBotCanReply = true
+	} else {
+		p.Flags.Unset(12)
+		p.BusinessBotCanReply = false
+	}
+}
+
+// GetBusinessBotCanReply returns value of BusinessBotCanReply conditional field.
+func (p *PeerSettings) GetBusinessBotCanReply() (value bool) {
+	if p == nil {
+		return
+	}
+	return p.Flags.Has(12)
+}
+
 // SetGeoDistance sets value of GeoDistance conditional field.
 func (p *PeerSettings) SetGeoDistance(value int) {
 	p.Flags.Set(6)
@@ -629,4 +783,40 @@ func (p *PeerSettings) GetRequestChatDate() (value int, ok bool) {
 		return value, false
 	}
 	return p.RequestChatDate, true
+}
+
+// SetBusinessBotID sets value of BusinessBotID conditional field.
+func (p *PeerSettings) SetBusinessBotID(value int64) {
+	p.Flags.Set(13)
+	p.BusinessBotID = value
+}
+
+// GetBusinessBotID returns value of BusinessBotID conditional field and
+// boolean which is true if field was set.
+func (p *PeerSettings) GetBusinessBotID() (value int64, ok bool) {
+	if p == nil {
+		return
+	}
+	if !p.Flags.Has(13) {
+		return value, false
+	}
+	return p.BusinessBotID, true
+}
+
+// SetBusinessBotManageURL sets value of BusinessBotManageURL conditional field.
+func (p *PeerSettings) SetBusinessBotManageURL(value string) {
+	p.Flags.Set(13)
+	p.BusinessBotManageURL = value
+}
+
+// GetBusinessBotManageURL returns value of BusinessBotManageURL conditional field and
+// boolean which is true if field was set.
+func (p *PeerSettings) GetBusinessBotManageURL() (value string, ok bool) {
+	if p == nil {
+		return
+	}
+	if !p.Flags.Has(13) {
+		return value, false
+	}
+	return p.BusinessBotManageURL, true
 }

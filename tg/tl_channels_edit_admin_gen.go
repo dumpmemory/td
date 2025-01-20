@@ -280,7 +280,7 @@ func (e *ChannelsEditAdminRequest) GetChannelAsNotEmpty() (NotEmptyInputChannel,
 //	400 CHANNEL_INVALID: The provided channel is invalid.
 //	400 CHANNEL_PRIVATE: You haven't joined this channel/supergroup.
 //	403 CHAT_ADMIN_INVITE_REQUIRED: You do not have the rights to do this.
-//	400 CHAT_ADMIN_REQUIRED: You must be an admin in this chat to do this.
+//	403 CHAT_ADMIN_REQUIRED: You must be an admin in this chat to do this.
 //	403 CHAT_WRITE_FORBIDDEN: You can't write in this chat.
 //	406 FRESH_CHANGE_ADMINS_FORBIDDEN: You were just elected admin, you can't add or modify other admins yet.
 //	400 INPUT_USER_DEACTIVATED: The specified user was deleted.
@@ -289,7 +289,7 @@ func (e *ChannelsEditAdminRequest) GetChannelAsNotEmpty() (NotEmptyInputChannel,
 //	400 USERS_TOO_MUCH: The maximum number of users has been exceeded (to create a chat, for example).
 //	400 USER_BLOCKED: User blocked.
 //	403 USER_CHANNELS_TOO_MUCH: One of the users you tried to add is already in too many channels/supergroups.
-//	400 USER_CREATOR: You can't leave this channel, because you're its creator.
+//	400 USER_CREATOR: For channels.editAdmin: you've tried to edit the admin rights of the owner, but you're not the owner; for channels.leaveChannel: you can't leave this channel, because you're its creator.
 //	400 USER_ID_INVALID: The provided user ID is invalid.
 //	403 USER_NOT_MUTUAL_CONTACT: The provided user is not a mutual contact.
 //	403 USER_PRIVACY_RESTRICTED: The user's privacy settings do not allow you to do this.

@@ -1,6 +1,8 @@
 # td [![Go Reference](https://img.shields.io/badge/go-pkg-00ADD8)](https://pkg.go.dev/github.com/gotd/td#section-documentation) [![codecov](https://img.shields.io/codecov/c/github/gotd/td?label=cover)](https://codecov.io/gh/gotd/td) [![beta](https://img.shields.io/badge/-beta-yellow)](https://go-faster.org/docs/projects/status#beta)
 
-A fast Telegram client in pure Go.
+Telegram MTProto API client in Go for users and bots.
+
+[![Telegram: English chat](https://api.go-faster.org/badge/telegram/gotd_en?title=EN&v=1)](https://t.me/gotd_en) [![Telegram: Russian chat](https://api.go-faster.org/badge/telegram/gotd_ru?title=RU&v=1)](https://t.me/gotd_ru) [![Telegram: Chinese chat](https://api.go-faster.org/badge/telegram/gotd_zhcn?title=CN&v=1)](https://t.me/gotd_zhcn) [![Telegram: Online count](https://api.go-faster.org/badge/telegram/online?groups=gotd_ru&groups=gotd_en&groups=gotd_zhcn)](https://t.me/gotd_en)
 
 * [Examples](examples)
 * [Security policy](.github/SECURITY.md)
@@ -13,6 +15,13 @@ A fast Telegram client in pure Go.
 Before using this library, read [How To Not Get Banned](.github/SUPPORT.md#how-to-not-get-banned) guide.
 
 Due to limitations of `pkg.go.dev`, documentation for `tg` package is not shown, but there is [hosted version](https://ref.gotd.dev/pkg/github.com/gotd/td/tg.html).
+
+## Higher level libraries
+
+The `gotd` itself is a pretty low-level library, and you may want to use higher level libraries instead:
+- [GoTGProto][gotgproto] is a helper package for gotd library, It aims to make td's raw functions easy-to-use with the help of features like using session strings, custom helper functions, storing peers and extracting chat or user ids through it etc.
+
+[gotgproto]: https://github.com/celestix/gotgproto
 
 ## Usage
 
@@ -96,7 +105,7 @@ See [examples](examples) directory.
 
 Also take a look at
 
-* [gotd/bot](https://github.com/gotd/bot) with updates recovery enabled, used as canary for stability testing
+* [go-faster/bot](https://github.com/go-faster/bot) as example of sophisticated telegram bot integration with GitHub
 * [gotd/cli](https://github.com/gotd/cli), command line interface for subset of telegram methods.
 
 ### Auth
@@ -258,6 +267,8 @@ formal security audit were performed.
 * [sdidyk/mtproto](https://github.com/sdidyk/mtproto), [cjongseok/mtproto](https://github.com/cjongseok/mtproto), [xelaj/mtproto](https://github.com/xelaj/mtproto) (MTProto 1.0 in go)
 
 ## Who is using gotd?
+
+- The [iyear/tdl](https://github.com/iyear/tdl), 📥 Telegram Downloader, but more than a downloader
 
 [<img src="https://user-images.githubusercontent.com/43930873/142855897-7091ced0-4fe8-4f8d-ad43-e9db2723bacc.png" width="150">](https://telq.org)
 

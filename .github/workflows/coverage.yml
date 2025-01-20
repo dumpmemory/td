@@ -10,9 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.19
+          go-version: '1.22.x'
+          cache: false
 
       - name: Get Go environment
         id: go-env
@@ -20,7 +21,7 @@ jobs:
           echo "::set-output name=cache::$(go env GOCACHE)"
           echo "::set-output name=modcache::$(go env GOMODCACHE)"
       - name: Set up cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ steps.go-env.outputs.cache }}
@@ -30,13 +31,13 @@ jobs:
             test-${{ runner.os }}-go-
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run tests with coverage
         run: make coverage
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: profile.out
@@ -49,14 +50,15 @@ jobs:
       - test
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage
 
       - name: Send coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: profile.out
+          files: profile.out
+          fail_ci_if_error: true

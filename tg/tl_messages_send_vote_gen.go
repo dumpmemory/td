@@ -33,9 +33,12 @@ var (
 
 // MessagesSendVoteRequest represents TL type `messages.sendVote#10ea6184`.
 // Vote in a poll¹
+// Starting from layer 159, the vote will be sent from the peer specified using messages
+// saveDefaultSendAs¹.
 //
 // Links:
 //  1. https://core.telegram.org/constructor/poll
+//  2. https://core.telegram.org/method/messages.saveDefaultSendAs
 //
 // See https://core.telegram.org/method/messages.sendVote for reference.
 type MessagesSendVoteRequest struct {
@@ -238,9 +241,12 @@ func (s *MessagesSendVoteRequest) GetOptions() (value [][]byte) {
 
 // MessagesSendVote invokes method messages.sendVote#10ea6184 returning error if any.
 // Vote in a poll¹
+// Starting from layer 159, the vote will be sent from the peer specified using messages
+// saveDefaultSendAs¹.
 //
 // Links:
 //  1. https://core.telegram.org/constructor/poll
+//  2. https://core.telegram.org/method/messages.saveDefaultSendAs
 //
 // Possible errors:
 //
@@ -248,6 +254,7 @@ func (s *MessagesSendVoteRequest) GetOptions() (value [][]byte) {
 //	400 CHANNEL_PRIVATE: You haven't joined this channel/supergroup.
 //	400 MESSAGE_ID_INVALID: The provided message id is invalid.
 //	400 MESSAGE_POLL_CLOSED: Poll closed.
+//	400 MSG_ID_INVALID: Invalid message ID provided.
 //	400 OPTIONS_TOO_MUCH: Too many options provided.
 //	400 OPTION_INVALID: Invalid option selected.
 //	400 PEER_ID_INVALID: The provided peer id is invalid.

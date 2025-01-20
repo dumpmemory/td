@@ -166,8 +166,18 @@ func (u *UserEmpty) GetID() (value int64) {
 	return u.ID
 }
 
-// User represents TL type `user#8f97c628`.
-// Indicates info about a certain user
+// User represents TL type `user#4b46c37e`.
+// Indicates info about a certain user.
+// Unless specified otherwise, when updating the local peer database¹, all fields from
+// the newly received constructor take priority over the old constructor cached locally
+// (including by removing fields that aren't set in the new constructor).
+// See here »¹ for an implementation of the logic to use when updating the local user
+// peer database².
+//
+// Links:
+//  1. https://core.telegram.org/api/peers
+//  2. https://github.com/tdlib/td/blob/cb164927417f22811c74cd8678ed4a5ab7cb80ba/td/telegram/UserManager.cpp#L2267
+//  3. https://core.telegram.org/api/peers
 //
 // See https://core.telegram.org/constructor/user for reference.
 type User struct {
@@ -178,13 +188,31 @@ type User struct {
 	Flags bin.Fields
 	// Whether this user indicates the currently logged in user
 	Self bool
-	// Whether this user is a contact
+	// Whether this user is a contact When updating the local peer database¹, do not apply
+	// changes to this field if the min flag is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
 	Contact bool
-	// Whether this user is a mutual contact
+	// Whether this user is a mutual contact. When updating the local peer database¹, do not
+	// apply changes to this field if the min flag is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
 	MutualContact bool
-	// Whether the account of this user was deleted
+	// Whether the account of this user was deleted. Changes to this flag should invalidate
+	// the local userFull¹ cache for this user ID, see here »² for more info.
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/userFull
+	//  2) https://core.telegram.org/api/peers#full-info-database
 	Deleted bool
-	// Is this user a bot?
+	// Is this user a bot? Changes to this flag should invalidate the local userFull¹ cache
+	// for this user ID, see here »² for more info.
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/userFull
+	//  2) https://core.telegram.org/api/peers#full-info-database
 	Bot bool
 	// Can the bot see all messages in groups?
 	BotChatHistory bool
@@ -205,7 +233,8 @@ type User struct {
 	Support bool
 	// This may be a scam user
 	Scam bool
-	// If set, the profile picture for this user should be refetched
+	// If set and min is set, the value of photo can be used to update the local database,
+	// see the documentation of that flag for more info.
 	ApplyMinPhoto bool
 	// If set, this user was reported by many users as a fake or scam user: be careful when
 	// interacting with them.
@@ -215,49 +244,184 @@ type User struct {
 	// Links:
 	//  1) https://core.telegram.org/api/bots/attach
 	BotAttachMenu bool
-	// Whether this user is a Telegram Premium user
-	Premium bool
-	// Whether we installed the attachment menu web app¹ offered by this bot
-	//
-	// Links:
-	//  1) https://core.telegram.org/api/bots/attach
-	AttachMenuEnabled bool
-	// Flags2 field of User.
-	Flags2 bin.Fields
-	// ID of the user
-	ID int64
-	// Access hash of the user
-	//
-	// Use SetAccessHash and GetAccessHash helpers.
-	AccessHash int64
-	// First name
-	//
-	// Use SetFirstName and GetFirstName helpers.
-	FirstName string
-	// Last name
-	//
-	// Use SetLastName and GetLastName helpers.
-	LastName string
-	// Username
-	//
-	// Use SetUsername and GetUsername helpers.
-	Username string
-	// Phone number
-	//
-	// Use SetPhone and GetPhone helpers.
-	Phone string
-	// Profile picture of user
-	//
-	// Use SetPhoto and GetPhoto helpers.
-	Photo UserProfilePhotoClass
-	// Online status of user
-	//
-	// Use SetStatus and GetStatus helpers.
-	Status UserStatusClass
-	// Version of the bot_info field in userFull¹, incremented every time it changes
+	// Whether this user is a Telegram Premium user Changes to this flag should invalidate
+	// the local userFull¹ cache for this user ID, see here »² for more info. Changes to
+	// this flag if the self flag is set should also trigger the following calls, to refresh
+	// the respective caches: - The help.getConfig³ cache - The messages.getTopReactions⁴
+	// cache if the bot flag is not set
 	//
 	// Links:
 	//  1) https://core.telegram.org/constructor/userFull
+	//  2) https://core.telegram.org/api/peers#full-info-database
+	//  3) https://core.telegram.org/method/help.getConfig
+	//  4) https://core.telegram.org/method/messages.getTopReactions
+	Premium bool
+	// Whether we installed the attachment menu web app¹ offered by this bot. When updating
+	// the local peer database², do not apply changes to this field if the min flag is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/bots/attach
+	//  2) https://core.telegram.org/api/peers
+	AttachMenuEnabled bool
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
+	Flags2 bin.Fields
+	// Whether we can edit the profile picture, name, about text and description of this bot
+	// because we own it. When updating the local peer database¹, do not apply changes to
+	// this field if the min flag is set. Changes to this flag (if min is not set) should
+	// invalidate the local userFull² cache for this user ID.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//  2) https://core.telegram.org/constructor/userFull
+	BotCanEdit bool
+	// Whether we marked this user as a close friend, see here » for more info¹. When
+	// updating the local peer database², do not apply changes to this field if the min flag
+	// is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/privacy
+	//  2) https://core.telegram.org/api/peers
+	CloseFriend bool
+	// Whether we have hidden »¹ all active stories of this user. When updating the local
+	// peer database², do not apply changes to this field if the min flag is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stories#hiding-stories-of-other-users
+	//  2) https://core.telegram.org/api/peers
+	StoriesHidden bool
+	// No stories from this user are visible.
+	StoriesUnavailable bool
+	// If set, we can only write to this user if they have already sent some messages to us,
+	// if we are subscribed to Telegram Premium¹, or if they're a mutual contact (user²
+	// mutual_contact).  All the secondary conditions listed above must be checked separately
+	// to verify whether we can still write to the user, even if this flag is set (i.e. a
+	// mutual contact will have this flag set even if we can still write to them, and so on..
+	// ); to avoid doing these extra checks if we haven't yet cached all the required
+	// information (for example while displaying the chat list in the sharing UI) the users
+	// getIsPremiumRequiredToContact³ method may be invoked instead, passing the list of
+	// users currently visible in the UI, returning a list of booleans that directly specify
+	// whether we can or cannot write to each user; alternatively, the userFull⁴
+	// contact_require_premium flag contains the same (fully checked, i.e. it's not just a
+	// copy of this flag) info returned by users.getIsPremiumRequiredToContact⁵. To set
+	// this flag for ourselves invoke account.setGlobalPrivacySettings⁶, setting the
+	// settings.new_noncontact_peers_require_premium flag.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/premium
+	//  2) https://core.telegram.org/constructor/user
+	//  3) https://core.telegram.org/method/users.getIsPremiumRequiredToContact
+	//  4) https://core.telegram.org/constructor/userFull
+	//  5) https://core.telegram.org/method/users.getIsPremiumRequiredToContact
+	//  6) https://core.telegram.org/method/account.setGlobalPrivacySettings
+	ContactRequirePremium bool
+	// Whether this bot can be connected to a user as specified here »¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/business#connected-bots
+	BotBusiness bool
+	// If set, this bot has configured a Main Mini App »¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/bots/webapps#main-mini-apps
+	BotHasMainApp bool
+	// ID of the user, see here »¹ for more info.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers#peer-id
+	ID int64
+	// Access hash of the user, see here »¹ for more info. If this flag is set, when
+	// updating the local peer database², generate a virtual flag called min_access_hash,
+	// which is: - Set to true if min is set AND -- The phone flag is not set OR -- The phone
+	// flag is set and the associated phone number string is non-empty - Set to false
+	// otherwise. Then, apply both access_hash and min_access_hash to the local database if:
+	// - min_access_hash is false OR - min_access_hash is true AND -- There is no locally
+	// cached object for this user OR -- There is no access_hash in the local cache OR -- The
+	// cached object's min_access_hash is also true If the final merged object stored to the
+	// database has the min_access_hash field set to true, the related access_hash is only
+	// suitable to use in inputPeerPhotoFileLocation »³, to directly download the profile
+	// pictures⁴ of users, everywhere else a inputPeer*FromMessage constructor will have to
+	// be generated as specified here »⁵. Bots can also use min access hashes in some
+	// conditions, by passing 0 instead of the min access hash.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers#access-hash
+	//  2) https://core.telegram.org/api/peers
+	//  3) https://core.telegram.org/constructor/inputPeerPhotoFileLocation
+	//  4) https://core.telegram.org/api/files
+	//  5) https://core.telegram.org/api/min
+	//
+	// Use SetAccessHash and GetAccessHash helpers.
+	AccessHash int64
+	// First name. When updating the local peer database¹, apply changes to this field only
+	// if: - The min flag is not set OR - The min flag is set AND -- The min flag of the
+	// locally cached user entry is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//
+	// Use SetFirstName and GetFirstName helpers.
+	FirstName string
+	// Last name. When updating the local peer database¹, apply changes to this field only
+	// if: - The min flag is not set OR - The min flag is set AND -- The min flag of the
+	// locally cached user entry is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//
+	// Use SetLastName and GetLastName helpers.
+	LastName string
+	// Main active username. When updating the local peer database¹, apply changes to this
+	// field only if: - The min flag is not set OR - The min flag is set AND -- The min flag
+	// of the locally cached user entry is set. Changes to this flag should invalidate the
+	// local userFull² cache for this user ID if the above conditions are respected and the
+	// bot_can_edit flag is also set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//  2) https://core.telegram.org/constructor/userFull
+	//
+	// Use SetUsername and GetUsername helpers.
+	Username string
+	// Phone number. When updating the local peer database¹, apply changes to this field
+	// only if: - The min flag is not set OR - The min flag is set AND -- The min flag of the
+	// locally cached user entry is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//
+	// Use SetPhone and GetPhone helpers.
+	Phone string
+	// Profile picture of user. When updating the local peer database¹, apply changes to
+	// this field only if: - The min flag is not set OR - The min flag is set AND -- The
+	// apply_min_photo flag is set OR -- The min flag of the locally cached user entry is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//
+	// Use SetPhoto and GetPhoto helpers.
+	Photo UserProfilePhotoClass
+	// Online status of user. When updating the local peer database¹, apply changes to this
+	// field only if: - The min flag is not set OR - The min flag is set AND -- The min flag
+	// of the locally cached user entry is set OR -- The locally cached user entry is equal
+	// to userStatusEmpty².
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//  2) https://core.telegram.org/constructor/userStatusEmpty
+	//
+	// Use SetStatus and GetStatus helpers.
+	Status UserStatusClass
+	// Version of the bot_info field in userFull¹, incremented every time it changes.
+	// Changes to this flag should invalidate the local userFull² cache for this user ID,
+	// see here »³ for more info.
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/userFull
+	//  2) https://core.telegram.org/constructor/userFull
+	//  3) https://core.telegram.org/api/peers#full-info-database
 	//
 	// Use SetBotInfoVersion and GetBotInfoVersion helpers.
 	BotInfoVersion int
@@ -280,14 +444,52 @@ type User struct {
 	//
 	// Use SetEmojiStatus and GetEmojiStatus helpers.
 	EmojiStatus EmojiStatusClass
-	// Usernames field of User.
+	// Additional usernames. When updating the local peer database¹, apply changes to this
+	// field only if: - The min flag is not set OR - The min flag is set AND -- The min flag
+	// of the locally cached user entry is set. Changes to this flag (if the above conditions
+	// are respected) should invalidate the local userFull² cache for this user ID.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/peers
+	//  2) https://core.telegram.org/constructor/userFull
 	//
 	// Use SetUsernames and GetUsernames helpers.
 	Usernames []Username
+	// ID of the maximum read story¹.  When updating the local peer database², do not apply
+	// changes to this field if the min flag of the incoming constructor is set.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/stories
+	//  2) https://core.telegram.org/api/peers
+	//
+	// Use SetStoriesMaxID and GetStoriesMaxID helpers.
+	StoriesMaxID int
+	// The user's accent color¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/colors
+	//
+	// Use SetColor and GetColor helpers.
+	Color PeerColor
+	// The user's profile color¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/colors
+	//
+	// Use SetProfileColor and GetProfileColor helpers.
+	ProfileColor PeerColor
+	// Monthly Active Users (MAU) of this bot (may be absent for small bots).
+	//
+	// Use SetBotActiveUsers and GetBotActiveUsers helpers.
+	BotActiveUsers int
+	// BotVerificationIcon field of User.
+	//
+	// Use SetBotVerificationIcon and GetBotVerificationIcon helpers.
+	BotVerificationIcon int64
 }
 
 // UserTypeID is TL type id of User.
-const UserTypeID = 0x8f97c628
+const UserTypeID = 0x4b46c37e
 
 // construct implements constructor of UserClass.
 func (u User) construct() UserClass { return &u }
@@ -366,6 +568,27 @@ func (u *User) Zero() bool {
 	if !(u.Flags2.Zero()) {
 		return false
 	}
+	if !(u.BotCanEdit == false) {
+		return false
+	}
+	if !(u.CloseFriend == false) {
+		return false
+	}
+	if !(u.StoriesHidden == false) {
+		return false
+	}
+	if !(u.StoriesUnavailable == false) {
+		return false
+	}
+	if !(u.ContactRequirePremium == false) {
+		return false
+	}
+	if !(u.BotBusiness == false) {
+		return false
+	}
+	if !(u.BotHasMainApp == false) {
+		return false
+	}
 	if !(u.ID == 0) {
 		return false
 	}
@@ -408,6 +631,21 @@ func (u *User) Zero() bool {
 	if !(u.Usernames == nil) {
 		return false
 	}
+	if !(u.StoriesMaxID == 0) {
+		return false
+	}
+	if !(u.Color.Zero()) {
+		return false
+	}
+	if !(u.ProfileColor.Zero()) {
+		return false
+	}
+	if !(u.BotActiveUsers == 0) {
+		return false
+	}
+	if !(u.BotVerificationIcon == 0) {
+		return false
+	}
 
 	return true
 }
@@ -441,6 +679,13 @@ func (u *User) FillFrom(from interface {
 	GetBotAttachMenu() (value bool)
 	GetPremium() (value bool)
 	GetAttachMenuEnabled() (value bool)
+	GetBotCanEdit() (value bool)
+	GetCloseFriend() (value bool)
+	GetStoriesHidden() (value bool)
+	GetStoriesUnavailable() (value bool)
+	GetContactRequirePremium() (value bool)
+	GetBotBusiness() (value bool)
+	GetBotHasMainApp() (value bool)
 	GetID() (value int64)
 	GetAccessHash() (value int64, ok bool)
 	GetFirstName() (value string, ok bool)
@@ -455,6 +700,11 @@ func (u *User) FillFrom(from interface {
 	GetLangCode() (value string, ok bool)
 	GetEmojiStatus() (value EmojiStatusClass, ok bool)
 	GetUsernames() (value []Username, ok bool)
+	GetStoriesMaxID() (value int, ok bool)
+	GetColor() (value PeerColor, ok bool)
+	GetProfileColor() (value PeerColor, ok bool)
+	GetBotActiveUsers() (value int, ok bool)
+	GetBotVerificationIcon() (value int64, ok bool)
 }) {
 	u.Self = from.GetSelf()
 	u.Contact = from.GetContact()
@@ -474,6 +724,13 @@ func (u *User) FillFrom(from interface {
 	u.BotAttachMenu = from.GetBotAttachMenu()
 	u.Premium = from.GetPremium()
 	u.AttachMenuEnabled = from.GetAttachMenuEnabled()
+	u.BotCanEdit = from.GetBotCanEdit()
+	u.CloseFriend = from.GetCloseFriend()
+	u.StoriesHidden = from.GetStoriesHidden()
+	u.StoriesUnavailable = from.GetStoriesUnavailable()
+	u.ContactRequirePremium = from.GetContactRequirePremium()
+	u.BotBusiness = from.GetBotBusiness()
+	u.BotHasMainApp = from.GetBotHasMainApp()
 	u.ID = from.GetID()
 	if val, ok := from.GetAccessHash(); ok {
 		u.AccessHash = val
@@ -525,6 +782,26 @@ func (u *User) FillFrom(from interface {
 
 	if val, ok := from.GetUsernames(); ok {
 		u.Usernames = val
+	}
+
+	if val, ok := from.GetStoriesMaxID(); ok {
+		u.StoriesMaxID = val
+	}
+
+	if val, ok := from.GetColor(); ok {
+		u.Color = val
+	}
+
+	if val, ok := from.GetProfileColor(); ok {
+		u.ProfileColor = val
+	}
+
+	if val, ok := from.GetBotActiveUsers(); ok {
+		u.BotActiveUsers = val
+	}
+
+	if val, ok := from.GetBotVerificationIcon(); ok {
+		u.BotVerificationIcon = val
 	}
 
 }
@@ -643,6 +920,41 @@ func (u *User) TypeInfo() tdp.Type {
 			Null:       !u.Flags.Has(29),
 		},
 		{
+			Name:       "BotCanEdit",
+			SchemaName: "bot_can_edit",
+			Null:       !u.Flags2.Has(1),
+		},
+		{
+			Name:       "CloseFriend",
+			SchemaName: "close_friend",
+			Null:       !u.Flags2.Has(2),
+		},
+		{
+			Name:       "StoriesHidden",
+			SchemaName: "stories_hidden",
+			Null:       !u.Flags2.Has(3),
+		},
+		{
+			Name:       "StoriesUnavailable",
+			SchemaName: "stories_unavailable",
+			Null:       !u.Flags2.Has(4),
+		},
+		{
+			Name:       "ContactRequirePremium",
+			SchemaName: "contact_require_premium",
+			Null:       !u.Flags2.Has(10),
+		},
+		{
+			Name:       "BotBusiness",
+			SchemaName: "bot_business",
+			Null:       !u.Flags2.Has(11),
+		},
+		{
+			Name:       "BotHasMainApp",
+			SchemaName: "bot_has_main_app",
+			Null:       !u.Flags2.Has(13),
+		},
+		{
 			Name:       "ID",
 			SchemaName: "id",
 		},
@@ -711,6 +1023,31 @@ func (u *User) TypeInfo() tdp.Type {
 			SchemaName: "usernames",
 			Null:       !u.Flags2.Has(0),
 		},
+		{
+			Name:       "StoriesMaxID",
+			SchemaName: "stories_max_id",
+			Null:       !u.Flags2.Has(5),
+		},
+		{
+			Name:       "Color",
+			SchemaName: "color",
+			Null:       !u.Flags2.Has(8),
+		},
+		{
+			Name:       "ProfileColor",
+			SchemaName: "profile_color",
+			Null:       !u.Flags2.Has(9),
+		},
+		{
+			Name:       "BotActiveUsers",
+			SchemaName: "bot_active_users",
+			Null:       !u.Flags2.Has(12),
+		},
+		{
+			Name:       "BotVerificationIcon",
+			SchemaName: "bot_verification_icon",
+			Null:       !u.Flags2.Has(14),
+		},
 	}
 	return typ
 }
@@ -771,6 +1108,27 @@ func (u *User) SetFlags() {
 	if !(u.AttachMenuEnabled == false) {
 		u.Flags.Set(29)
 	}
+	if !(u.BotCanEdit == false) {
+		u.Flags2.Set(1)
+	}
+	if !(u.CloseFriend == false) {
+		u.Flags2.Set(2)
+	}
+	if !(u.StoriesHidden == false) {
+		u.Flags2.Set(3)
+	}
+	if !(u.StoriesUnavailable == false) {
+		u.Flags2.Set(4)
+	}
+	if !(u.ContactRequirePremium == false) {
+		u.Flags2.Set(10)
+	}
+	if !(u.BotBusiness == false) {
+		u.Flags2.Set(11)
+	}
+	if !(u.BotHasMainApp == false) {
+		u.Flags2.Set(13)
+	}
 	if !(u.AccessHash == 0) {
 		u.Flags.Set(0)
 	}
@@ -810,12 +1168,27 @@ func (u *User) SetFlags() {
 	if !(u.Usernames == nil) {
 		u.Flags2.Set(0)
 	}
+	if !(u.StoriesMaxID == 0) {
+		u.Flags2.Set(5)
+	}
+	if !(u.Color.Zero()) {
+		u.Flags2.Set(8)
+	}
+	if !(u.ProfileColor.Zero()) {
+		u.Flags2.Set(9)
+	}
+	if !(u.BotActiveUsers == 0) {
+		u.Flags2.Set(12)
+	}
+	if !(u.BotVerificationIcon == 0) {
+		u.Flags2.Set(14)
+	}
 }
 
 // Encode implements bin.Encoder.
 func (u *User) Encode(b *bin.Buffer) error {
 	if u == nil {
-		return fmt.Errorf("can't encode user#8f97c628 as nil")
+		return fmt.Errorf("can't encode user#4b46c37e as nil")
 	}
 	b.PutID(UserTypeID)
 	return u.EncodeBare(b)
@@ -824,14 +1197,14 @@ func (u *User) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (u *User) EncodeBare(b *bin.Buffer) error {
 	if u == nil {
-		return fmt.Errorf("can't encode user#8f97c628 as nil")
+		return fmt.Errorf("can't encode user#4b46c37e as nil")
 	}
 	u.SetFlags()
 	if err := u.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode user#8f97c628: field flags: %w", err)
+		return fmt.Errorf("unable to encode user#4b46c37e: field flags: %w", err)
 	}
 	if err := u.Flags2.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode user#8f97c628: field flags2: %w", err)
+		return fmt.Errorf("unable to encode user#4b46c37e: field flags2: %w", err)
 	}
 	b.PutLong(u.ID)
 	if u.Flags.Has(0) {
@@ -851,18 +1224,18 @@ func (u *User) EncodeBare(b *bin.Buffer) error {
 	}
 	if u.Flags.Has(5) {
 		if u.Photo == nil {
-			return fmt.Errorf("unable to encode user#8f97c628: field photo is nil")
+			return fmt.Errorf("unable to encode user#4b46c37e: field photo is nil")
 		}
 		if err := u.Photo.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode user#8f97c628: field photo: %w", err)
+			return fmt.Errorf("unable to encode user#4b46c37e: field photo: %w", err)
 		}
 	}
 	if u.Flags.Has(6) {
 		if u.Status == nil {
-			return fmt.Errorf("unable to encode user#8f97c628: field status is nil")
+			return fmt.Errorf("unable to encode user#4b46c37e: field status is nil")
 		}
 		if err := u.Status.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode user#8f97c628: field status: %w", err)
+			return fmt.Errorf("unable to encode user#4b46c37e: field status: %w", err)
 		}
 	}
 	if u.Flags.Has(14) {
@@ -872,7 +1245,7 @@ func (u *User) EncodeBare(b *bin.Buffer) error {
 		b.PutVectorHeader(len(u.RestrictionReason))
 		for idx, v := range u.RestrictionReason {
 			if err := v.Encode(b); err != nil {
-				return fmt.Errorf("unable to encode user#8f97c628: field restriction_reason element with index %d: %w", idx, err)
+				return fmt.Errorf("unable to encode user#4b46c37e: field restriction_reason element with index %d: %w", idx, err)
 			}
 		}
 	}
@@ -884,19 +1257,38 @@ func (u *User) EncodeBare(b *bin.Buffer) error {
 	}
 	if u.Flags.Has(30) {
 		if u.EmojiStatus == nil {
-			return fmt.Errorf("unable to encode user#8f97c628: field emoji_status is nil")
+			return fmt.Errorf("unable to encode user#4b46c37e: field emoji_status is nil")
 		}
 		if err := u.EmojiStatus.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode user#8f97c628: field emoji_status: %w", err)
+			return fmt.Errorf("unable to encode user#4b46c37e: field emoji_status: %w", err)
 		}
 	}
 	if u.Flags2.Has(0) {
 		b.PutVectorHeader(len(u.Usernames))
 		for idx, v := range u.Usernames {
 			if err := v.Encode(b); err != nil {
-				return fmt.Errorf("unable to encode user#8f97c628: field usernames element with index %d: %w", idx, err)
+				return fmt.Errorf("unable to encode user#4b46c37e: field usernames element with index %d: %w", idx, err)
 			}
 		}
+	}
+	if u.Flags2.Has(5) {
+		b.PutInt(u.StoriesMaxID)
+	}
+	if u.Flags2.Has(8) {
+		if err := u.Color.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode user#4b46c37e: field color: %w", err)
+		}
+	}
+	if u.Flags2.Has(9) {
+		if err := u.ProfileColor.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode user#4b46c37e: field profile_color: %w", err)
+		}
+	}
+	if u.Flags2.Has(12) {
+		b.PutInt(u.BotActiveUsers)
+	}
+	if u.Flags2.Has(14) {
+		b.PutLong(u.BotVerificationIcon)
 	}
 	return nil
 }
@@ -904,10 +1296,10 @@ func (u *User) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (u *User) Decode(b *bin.Buffer) error {
 	if u == nil {
-		return fmt.Errorf("can't decode user#8f97c628 to nil")
+		return fmt.Errorf("can't decode user#4b46c37e to nil")
 	}
 	if err := b.ConsumeID(UserTypeID); err != nil {
-		return fmt.Errorf("unable to decode user#8f97c628: %w", err)
+		return fmt.Errorf("unable to decode user#4b46c37e: %w", err)
 	}
 	return u.DecodeBare(b)
 }
@@ -915,11 +1307,11 @@ func (u *User) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (u *User) DecodeBare(b *bin.Buffer) error {
 	if u == nil {
-		return fmt.Errorf("can't decode user#8f97c628 to nil")
+		return fmt.Errorf("can't decode user#4b46c37e to nil")
 	}
 	{
 		if err := u.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field flags: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field flags: %w", err)
 		}
 	}
 	u.Self = u.Flags.Has(10)
@@ -942,76 +1334,83 @@ func (u *User) DecodeBare(b *bin.Buffer) error {
 	u.AttachMenuEnabled = u.Flags.Has(29)
 	{
 		if err := u.Flags2.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field flags2: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field flags2: %w", err)
 		}
 	}
+	u.BotCanEdit = u.Flags2.Has(1)
+	u.CloseFriend = u.Flags2.Has(2)
+	u.StoriesHidden = u.Flags2.Has(3)
+	u.StoriesUnavailable = u.Flags2.Has(4)
+	u.ContactRequirePremium = u.Flags2.Has(10)
+	u.BotBusiness = u.Flags2.Has(11)
+	u.BotHasMainApp = u.Flags2.Has(13)
 	{
 		value, err := b.Long()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field id: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field id: %w", err)
 		}
 		u.ID = value
 	}
 	if u.Flags.Has(0) {
 		value, err := b.Long()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field access_hash: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field access_hash: %w", err)
 		}
 		u.AccessHash = value
 	}
 	if u.Flags.Has(1) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field first_name: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field first_name: %w", err)
 		}
 		u.FirstName = value
 	}
 	if u.Flags.Has(2) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field last_name: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field last_name: %w", err)
 		}
 		u.LastName = value
 	}
 	if u.Flags.Has(3) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field username: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field username: %w", err)
 		}
 		u.Username = value
 	}
 	if u.Flags.Has(4) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field phone: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field phone: %w", err)
 		}
 		u.Phone = value
 	}
 	if u.Flags.Has(5) {
 		value, err := DecodeUserProfilePhoto(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field photo: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field photo: %w", err)
 		}
 		u.Photo = value
 	}
 	if u.Flags.Has(6) {
 		value, err := DecodeUserStatus(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field status: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field status: %w", err)
 		}
 		u.Status = value
 	}
 	if u.Flags.Has(14) {
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field bot_info_version: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field bot_info_version: %w", err)
 		}
 		u.BotInfoVersion = value
 	}
 	if u.Flags.Has(18) {
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field restriction_reason: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field restriction_reason: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -1020,7 +1419,7 @@ func (u *User) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			var value RestrictionReason
 			if err := value.Decode(b); err != nil {
-				return fmt.Errorf("unable to decode user#8f97c628: field restriction_reason: %w", err)
+				return fmt.Errorf("unable to decode user#4b46c37e: field restriction_reason: %w", err)
 			}
 			u.RestrictionReason = append(u.RestrictionReason, value)
 		}
@@ -1028,28 +1427,28 @@ func (u *User) DecodeBare(b *bin.Buffer) error {
 	if u.Flags.Has(19) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field bot_inline_placeholder: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field bot_inline_placeholder: %w", err)
 		}
 		u.BotInlinePlaceholder = value
 	}
 	if u.Flags.Has(22) {
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field lang_code: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field lang_code: %w", err)
 		}
 		u.LangCode = value
 	}
 	if u.Flags.Has(30) {
 		value, err := DecodeEmojiStatus(b)
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field emoji_status: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field emoji_status: %w", err)
 		}
 		u.EmojiStatus = value
 	}
 	if u.Flags2.Has(0) {
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode user#8f97c628: field usernames: %w", err)
+			return fmt.Errorf("unable to decode user#4b46c37e: field usernames: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -1058,10 +1457,41 @@ func (u *User) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			var value Username
 			if err := value.Decode(b); err != nil {
-				return fmt.Errorf("unable to decode user#8f97c628: field usernames: %w", err)
+				return fmt.Errorf("unable to decode user#4b46c37e: field usernames: %w", err)
 			}
 			u.Usernames = append(u.Usernames, value)
 		}
+	}
+	if u.Flags2.Has(5) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode user#4b46c37e: field stories_max_id: %w", err)
+		}
+		u.StoriesMaxID = value
+	}
+	if u.Flags2.Has(8) {
+		if err := u.Color.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode user#4b46c37e: field color: %w", err)
+		}
+	}
+	if u.Flags2.Has(9) {
+		if err := u.ProfileColor.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode user#4b46c37e: field profile_color: %w", err)
+		}
+	}
+	if u.Flags2.Has(12) {
+		value, err := b.Int()
+		if err != nil {
+			return fmt.Errorf("unable to decode user#4b46c37e: field bot_active_users: %w", err)
+		}
+		u.BotActiveUsers = value
+	}
+	if u.Flags2.Has(14) {
+		value, err := b.Long()
+		if err != nil {
+			return fmt.Errorf("unable to decode user#4b46c37e: field bot_verification_icon: %w", err)
+		}
+		u.BotVerificationIcon = value
 	}
 	return nil
 }
@@ -1408,6 +1838,139 @@ func (u *User) GetAttachMenuEnabled() (value bool) {
 	return u.Flags.Has(29)
 }
 
+// SetBotCanEdit sets value of BotCanEdit conditional field.
+func (u *User) SetBotCanEdit(value bool) {
+	if value {
+		u.Flags2.Set(1)
+		u.BotCanEdit = true
+	} else {
+		u.Flags2.Unset(1)
+		u.BotCanEdit = false
+	}
+}
+
+// GetBotCanEdit returns value of BotCanEdit conditional field.
+func (u *User) GetBotCanEdit() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(1)
+}
+
+// SetCloseFriend sets value of CloseFriend conditional field.
+func (u *User) SetCloseFriend(value bool) {
+	if value {
+		u.Flags2.Set(2)
+		u.CloseFriend = true
+	} else {
+		u.Flags2.Unset(2)
+		u.CloseFriend = false
+	}
+}
+
+// GetCloseFriend returns value of CloseFriend conditional field.
+func (u *User) GetCloseFriend() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(2)
+}
+
+// SetStoriesHidden sets value of StoriesHidden conditional field.
+func (u *User) SetStoriesHidden(value bool) {
+	if value {
+		u.Flags2.Set(3)
+		u.StoriesHidden = true
+	} else {
+		u.Flags2.Unset(3)
+		u.StoriesHidden = false
+	}
+}
+
+// GetStoriesHidden returns value of StoriesHidden conditional field.
+func (u *User) GetStoriesHidden() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(3)
+}
+
+// SetStoriesUnavailable sets value of StoriesUnavailable conditional field.
+func (u *User) SetStoriesUnavailable(value bool) {
+	if value {
+		u.Flags2.Set(4)
+		u.StoriesUnavailable = true
+	} else {
+		u.Flags2.Unset(4)
+		u.StoriesUnavailable = false
+	}
+}
+
+// GetStoriesUnavailable returns value of StoriesUnavailable conditional field.
+func (u *User) GetStoriesUnavailable() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(4)
+}
+
+// SetContactRequirePremium sets value of ContactRequirePremium conditional field.
+func (u *User) SetContactRequirePremium(value bool) {
+	if value {
+		u.Flags2.Set(10)
+		u.ContactRequirePremium = true
+	} else {
+		u.Flags2.Unset(10)
+		u.ContactRequirePremium = false
+	}
+}
+
+// GetContactRequirePremium returns value of ContactRequirePremium conditional field.
+func (u *User) GetContactRequirePremium() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(10)
+}
+
+// SetBotBusiness sets value of BotBusiness conditional field.
+func (u *User) SetBotBusiness(value bool) {
+	if value {
+		u.Flags2.Set(11)
+		u.BotBusiness = true
+	} else {
+		u.Flags2.Unset(11)
+		u.BotBusiness = false
+	}
+}
+
+// GetBotBusiness returns value of BotBusiness conditional field.
+func (u *User) GetBotBusiness() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(11)
+}
+
+// SetBotHasMainApp sets value of BotHasMainApp conditional field.
+func (u *User) SetBotHasMainApp(value bool) {
+	if value {
+		u.Flags2.Set(13)
+		u.BotHasMainApp = true
+	} else {
+		u.Flags2.Unset(13)
+		u.BotHasMainApp = false
+	}
+}
+
+// GetBotHasMainApp returns value of BotHasMainApp conditional field.
+func (u *User) GetBotHasMainApp() (value bool) {
+	if u == nil {
+		return
+	}
+	return u.Flags2.Has(13)
+}
+
 // GetID returns value of ID field.
 func (u *User) GetID() (value int64) {
 	if u == nil {
@@ -1650,6 +2213,96 @@ func (u *User) GetUsernames() (value []Username, ok bool) {
 	return u.Usernames, true
 }
 
+// SetStoriesMaxID sets value of StoriesMaxID conditional field.
+func (u *User) SetStoriesMaxID(value int) {
+	u.Flags2.Set(5)
+	u.StoriesMaxID = value
+}
+
+// GetStoriesMaxID returns value of StoriesMaxID conditional field and
+// boolean which is true if field was set.
+func (u *User) GetStoriesMaxID() (value int, ok bool) {
+	if u == nil {
+		return
+	}
+	if !u.Flags2.Has(5) {
+		return value, false
+	}
+	return u.StoriesMaxID, true
+}
+
+// SetColor sets value of Color conditional field.
+func (u *User) SetColor(value PeerColor) {
+	u.Flags2.Set(8)
+	u.Color = value
+}
+
+// GetColor returns value of Color conditional field and
+// boolean which is true if field was set.
+func (u *User) GetColor() (value PeerColor, ok bool) {
+	if u == nil {
+		return
+	}
+	if !u.Flags2.Has(8) {
+		return value, false
+	}
+	return u.Color, true
+}
+
+// SetProfileColor sets value of ProfileColor conditional field.
+func (u *User) SetProfileColor(value PeerColor) {
+	u.Flags2.Set(9)
+	u.ProfileColor = value
+}
+
+// GetProfileColor returns value of ProfileColor conditional field and
+// boolean which is true if field was set.
+func (u *User) GetProfileColor() (value PeerColor, ok bool) {
+	if u == nil {
+		return
+	}
+	if !u.Flags2.Has(9) {
+		return value, false
+	}
+	return u.ProfileColor, true
+}
+
+// SetBotActiveUsers sets value of BotActiveUsers conditional field.
+func (u *User) SetBotActiveUsers(value int) {
+	u.Flags2.Set(12)
+	u.BotActiveUsers = value
+}
+
+// GetBotActiveUsers returns value of BotActiveUsers conditional field and
+// boolean which is true if field was set.
+func (u *User) GetBotActiveUsers() (value int, ok bool) {
+	if u == nil {
+		return
+	}
+	if !u.Flags2.Has(12) {
+		return value, false
+	}
+	return u.BotActiveUsers, true
+}
+
+// SetBotVerificationIcon sets value of BotVerificationIcon conditional field.
+func (u *User) SetBotVerificationIcon(value int64) {
+	u.Flags2.Set(14)
+	u.BotVerificationIcon = value
+}
+
+// GetBotVerificationIcon returns value of BotVerificationIcon conditional field and
+// boolean which is true if field was set.
+func (u *User) GetBotVerificationIcon() (value int64, ok bool) {
+	if u == nil {
+		return
+	}
+	if !u.Flags2.Has(14) {
+		return value, false
+	}
+	return u.BotVerificationIcon, true
+}
+
 // UserClassName is schema name of UserClass.
 const UserClassName = "User"
 
@@ -1665,7 +2318,7 @@ const UserClassName = "User"
 //	}
 //	switch v := g.(type) {
 //	case *tg.UserEmpty: // userEmpty#d3bc4b7a
-//	case *tg.User: // user#8f97c628
+//	case *tg.User: // user#4b46c37e
 //	default: panic(v)
 //	}
 type UserClass interface {
@@ -1715,6 +2368,16 @@ func (u *User) AsInput() *InputUser {
 	return value
 }
 
+// AsInputCollectibleUsername tries to map User to InputCollectibleUsername.
+func (u *User) AsInputCollectibleUsername() *InputCollectibleUsername {
+	value := new(InputCollectibleUsername)
+	if fieldValue, ok := u.GetUsername(); ok {
+		value.Username = fieldValue
+	}
+
+	return value
+}
+
 // AsNotEmpty tries to map UserEmpty to User.
 func (u *UserEmpty) AsNotEmpty() (*User, bool) {
 	return nil, false
@@ -1740,7 +2403,7 @@ func DecodeUser(buf *bin.Buffer) (UserClass, error) {
 		}
 		return &v, nil
 	case UserTypeID:
-		// Decoding user#8f97c628.
+		// Decoding user#4b46c37e.
 		v := User{}
 		if err := v.Decode(buf); err != nil {
 			return nil, fmt.Errorf("unable to decode UserClass: %w", err)

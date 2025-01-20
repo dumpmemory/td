@@ -31,25 +31,33 @@ var (
 	_ = tdjson.Encoder{}
 )
 
-// MessagesCreateChatRequest represents TL type `messages.createChat#34a818`.
+// MessagesCreateChatRequest represents TL type `messages.createChat#92ceddd4`.
 // Creates a new chat.
 //
 // See https://core.telegram.org/method/messages.createChat for reference.
 type MessagesCreateChatRequest struct {
-	// Flags field of MessagesCreateChatRequest.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
 	// List of user IDs to be invited
 	Users []InputUserClass
 	// Chat name
 	Title string
-	// TTLPeriod field of MessagesCreateChatRequest.
+	// Time-to-live of all messages that will be sent in the chat: once message.date+message
+	// ttl_period === time(), the message will be deleted on the server, and must be deleted
+	// locally as well. You can use messages.setDefaultHistoryTTL¹ to edit this value later.
+	//
+	// Links:
+	//  1) https://core.telegram.org/method/messages.setDefaultHistoryTTL
 	//
 	// Use SetTTLPeriod and GetTTLPeriod helpers.
 	TTLPeriod int
 }
 
 // MessagesCreateChatRequestTypeID is TL type id of MessagesCreateChatRequest.
-const MessagesCreateChatRequestTypeID = 0x34a818
+const MessagesCreateChatRequestTypeID = 0x92ceddd4
 
 // Ensuring interfaces in compile-time for MessagesCreateChatRequest.
 var (
@@ -152,7 +160,7 @@ func (c *MessagesCreateChatRequest) SetFlags() {
 // Encode implements bin.Encoder.
 func (c *MessagesCreateChatRequest) Encode(b *bin.Buffer) error {
 	if c == nil {
-		return fmt.Errorf("can't encode messages.createChat#34a818 as nil")
+		return fmt.Errorf("can't encode messages.createChat#92ceddd4 as nil")
 	}
 	b.PutID(MessagesCreateChatRequestTypeID)
 	return c.EncodeBare(b)
@@ -161,19 +169,19 @@ func (c *MessagesCreateChatRequest) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (c *MessagesCreateChatRequest) EncodeBare(b *bin.Buffer) error {
 	if c == nil {
-		return fmt.Errorf("can't encode messages.createChat#34a818 as nil")
+		return fmt.Errorf("can't encode messages.createChat#92ceddd4 as nil")
 	}
 	c.SetFlags()
 	if err := c.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode messages.createChat#34a818: field flags: %w", err)
+		return fmt.Errorf("unable to encode messages.createChat#92ceddd4: field flags: %w", err)
 	}
 	b.PutVectorHeader(len(c.Users))
 	for idx, v := range c.Users {
 		if v == nil {
-			return fmt.Errorf("unable to encode messages.createChat#34a818: field users element with index %d is nil", idx)
+			return fmt.Errorf("unable to encode messages.createChat#92ceddd4: field users element with index %d is nil", idx)
 		}
 		if err := v.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode messages.createChat#34a818: field users element with index %d: %w", idx, err)
+			return fmt.Errorf("unable to encode messages.createChat#92ceddd4: field users element with index %d: %w", idx, err)
 		}
 	}
 	b.PutString(c.Title)
@@ -186,10 +194,10 @@ func (c *MessagesCreateChatRequest) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (c *MessagesCreateChatRequest) Decode(b *bin.Buffer) error {
 	if c == nil {
-		return fmt.Errorf("can't decode messages.createChat#34a818 to nil")
+		return fmt.Errorf("can't decode messages.createChat#92ceddd4 to nil")
 	}
 	if err := b.ConsumeID(MessagesCreateChatRequestTypeID); err != nil {
-		return fmt.Errorf("unable to decode messages.createChat#34a818: %w", err)
+		return fmt.Errorf("unable to decode messages.createChat#92ceddd4: %w", err)
 	}
 	return c.DecodeBare(b)
 }
@@ -197,17 +205,17 @@ func (c *MessagesCreateChatRequest) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (c *MessagesCreateChatRequest) DecodeBare(b *bin.Buffer) error {
 	if c == nil {
-		return fmt.Errorf("can't decode messages.createChat#34a818 to nil")
+		return fmt.Errorf("can't decode messages.createChat#92ceddd4 to nil")
 	}
 	{
 		if err := c.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode messages.createChat#34a818: field flags: %w", err)
+			return fmt.Errorf("unable to decode messages.createChat#92ceddd4: field flags: %w", err)
 		}
 	}
 	{
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.createChat#34a818: field users: %w", err)
+			return fmt.Errorf("unable to decode messages.createChat#92ceddd4: field users: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -216,7 +224,7 @@ func (c *MessagesCreateChatRequest) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			value, err := DecodeInputUser(b)
 			if err != nil {
-				return fmt.Errorf("unable to decode messages.createChat#34a818: field users: %w", err)
+				return fmt.Errorf("unable to decode messages.createChat#92ceddd4: field users: %w", err)
 			}
 			c.Users = append(c.Users, value)
 		}
@@ -224,14 +232,14 @@ func (c *MessagesCreateChatRequest) DecodeBare(b *bin.Buffer) error {
 	{
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.createChat#34a818: field title: %w", err)
+			return fmt.Errorf("unable to decode messages.createChat#92ceddd4: field title: %w", err)
 		}
 		c.Title = value
 	}
 	if c.Flags.Has(0) {
 		value, err := b.Int()
 		if err != nil {
-			return fmt.Errorf("unable to decode messages.createChat#34a818: field ttl_period: %w", err)
+			return fmt.Errorf("unable to decode messages.createChat#92ceddd4: field ttl_period: %w", err)
 		}
 		c.TTLPeriod = value
 	}
@@ -277,7 +285,7 @@ func (c *MessagesCreateChatRequest) MapUsers() (value InputUserClassArray) {
 	return InputUserClassArray(c.Users)
 }
 
-// MessagesCreateChat invokes method messages.createChat#34a818 returning error if any.
+// MessagesCreateChat invokes method messages.createChat#92ceddd4 returning error if any.
 // Creates a new chat.
 //
 // Possible errors:
@@ -286,15 +294,16 @@ func (c *MessagesCreateChatRequest) MapUsers() (value InputUserClassArray) {
 //	400 CHAT_INVALID: Invalid chat.
 //	400 CHAT_TITLE_EMPTY: No chat title provided.
 //	400 INPUT_USER_DEACTIVATED: The specified user was deleted.
+//	400 TTL_PERIOD_INVALID: The specified TTL period is invalid.
 //	400 USERS_TOO_FEW: Not enough users (to create a chat, for example).
-//	403 USER_RESTRICTED: You're spamreported, you can't create channels or chats.
+//	406 USER_RESTRICTED: You're spamreported, you can't create channels or chats.
 //
 // See https://core.telegram.org/method/messages.createChat for reference.
-func (c *Client) MessagesCreateChat(ctx context.Context, request *MessagesCreateChatRequest) (UpdatesClass, error) {
-	var result UpdatesBox
+func (c *Client) MessagesCreateChat(ctx context.Context, request *MessagesCreateChatRequest) (*MessagesInvitedUsers, error) {
+	var result MessagesInvitedUsers
 
 	if err := c.rpc.Invoke(ctx, request, &result); err != nil {
 		return nil, err
 	}
-	return result.Updates, nil
+	return &result, nil
 }

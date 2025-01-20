@@ -39,9 +39,16 @@ var (
 //
 // See https://core.telegram.org/method/messages.toggleBotInAttachMenu for reference.
 type MessagesToggleBotInAttachMenuRequest struct {
-	// Flags field of MessagesToggleBotInAttachMenuRequest.
+	// Flags, see TL conditional fields¹
+	//
+	// Links:
+	//  1) https://core.telegram.org/mtproto/TL-combinators#conditional-fields
 	Flags bin.Fields
-	// WriteAllowed field of MessagesToggleBotInAttachMenuRequest.
+	// Whether the user authorizes the bot to write messages to them, if requested by
+	// attachMenuBot¹.request_write_access
+	//
+	// Links:
+	//  1) https://core.telegram.org/constructor/attachMenuBot
 	WriteAllowed bool
 	// Bot ID
 	Bot InputUserClass
@@ -254,6 +261,10 @@ func (t *MessagesToggleBotInAttachMenuRequest) GetEnabled() (value bool) {
 //
 // Links:
 //  1. https://core.telegram.org/api/bots/attach
+//
+// Possible errors:
+//
+//	400 BOT_INVALID: This is not a valid bot.
 //
 // See https://core.telegram.org/method/messages.toggleBotInAttachMenu for reference.
 func (c *Client) MessagesToggleBotInAttachMenu(ctx context.Context, request *MessagesToggleBotInAttachMenuRequest) (bool, error) {

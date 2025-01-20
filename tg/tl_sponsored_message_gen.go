@@ -31,7 +31,7 @@ var (
 	_ = tdjson.Encoder{}
 )
 
-// SponsoredMessage represents TL type `sponsoredMessage#3a836df8`.
+// SponsoredMessage represents TL type `sponsoredMessage#4d93a990`.
 // A sponsored message¹.
 //
 // Links:
@@ -46,43 +46,59 @@ type SponsoredMessage struct {
 	Flags bin.Fields
 	// Whether the message needs to be labeled as "recommended" instead of "sponsored"
 	Recommended bool
-	// ShowPeerPhoto field of SponsoredMessage.
-	ShowPeerPhoto bool
+	// Whether this message can be reported as specified here »¹.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/sponsored-messages#reporting-sponsored-messages
+	CanReport bool
 	// Message ID
 	RandomID []byte
-	// ID of the sender of the message
-	//
-	// Use SetFromID and GetFromID helpers.
-	FromID PeerClass
-	// Information about the chat invite hash specified in chat_invite_hash
-	//
-	// Use SetChatInvite and GetChatInvite helpers.
-	ChatInvite ChatInviteClass
-	// Chat invite
-	//
-	// Use SetChatInviteHash and GetChatInviteHash helpers.
-	ChatInviteHash string
-	// Optional link to a channel post if from_id points to a channel
-	//
-	// Use SetChannelPost and GetChannelPost helpers.
-	ChannelPost int
-	// Parameter for the bot start message if the sponsored chat is a chat with a bot.
-	//
-	// Use SetStartParam and GetStartParam helpers.
-	StartParam string
+	// Contains the URL to open when the user clicks on the sponsored message.
+	URL string
+	// Contains the title of the sponsored message.
+	Title string
 	// Sponsored message
 	Message string
-	// Message entities for styled text¹
+	// Message entities for styled text¹ in message.
 	//
 	// Links:
 	//  1) https://core.telegram.org/api/entities
 	//
 	// Use SetEntities and GetEntities helpers.
 	Entities []MessageEntityClass
+	// If set, contains a custom profile photo bubble that should be displayed for the
+	// sponsored message, like for messages sent in groups.
+	//
+	// Use SetPhoto and GetPhoto helpers.
+	Photo PhotoClass
+	// If set, contains some media.
+	//
+	// Use SetMedia and GetMedia helpers.
+	Media MessageMediaClass
+	// If set, the sponsored message should use the message accent color »¹ specified in
+	// color.
+	//
+	// Links:
+	//  1) https://core.telegram.org/api/colors
+	//
+	// Use SetColor and GetColor helpers.
+	Color PeerColor
+	// Label of the sponsored message button.
+	ButtonText string
+	// If set, contains additional information about the sponsor to be shown along with the
+	// message.
+	//
+	// Use SetSponsorInfo and GetSponsorInfo helpers.
+	SponsorInfo string
+	// If set, contains additional information about the sponsored message to be shown along
+	// with the message.
+	//
+	// Use SetAdditionalInfo and GetAdditionalInfo helpers.
+	AdditionalInfo string
 }
 
 // SponsoredMessageTypeID is TL type id of SponsoredMessage.
-const SponsoredMessageTypeID = 0x3a836df8
+const SponsoredMessageTypeID = 0x4d93a990
 
 // Ensuring interfaces in compile-time for SponsoredMessage.
 var (
@@ -102,31 +118,40 @@ func (s *SponsoredMessage) Zero() bool {
 	if !(s.Recommended == false) {
 		return false
 	}
-	if !(s.ShowPeerPhoto == false) {
+	if !(s.CanReport == false) {
 		return false
 	}
 	if !(s.RandomID == nil) {
 		return false
 	}
-	if !(s.FromID == nil) {
+	if !(s.URL == "") {
 		return false
 	}
-	if !(s.ChatInvite == nil) {
-		return false
-	}
-	if !(s.ChatInviteHash == "") {
-		return false
-	}
-	if !(s.ChannelPost == 0) {
-		return false
-	}
-	if !(s.StartParam == "") {
+	if !(s.Title == "") {
 		return false
 	}
 	if !(s.Message == "") {
 		return false
 	}
 	if !(s.Entities == nil) {
+		return false
+	}
+	if !(s.Photo == nil) {
+		return false
+	}
+	if !(s.Media == nil) {
+		return false
+	}
+	if !(s.Color.Zero()) {
+		return false
+	}
+	if !(s.ButtonText == "") {
+		return false
+	}
+	if !(s.SponsorInfo == "") {
+		return false
+	}
+	if !(s.AdditionalInfo == "") {
 		return false
 	}
 
@@ -145,42 +170,48 @@ func (s *SponsoredMessage) String() string {
 // FillFrom fills SponsoredMessage from given interface.
 func (s *SponsoredMessage) FillFrom(from interface {
 	GetRecommended() (value bool)
-	GetShowPeerPhoto() (value bool)
+	GetCanReport() (value bool)
 	GetRandomID() (value []byte)
-	GetFromID() (value PeerClass, ok bool)
-	GetChatInvite() (value ChatInviteClass, ok bool)
-	GetChatInviteHash() (value string, ok bool)
-	GetChannelPost() (value int, ok bool)
-	GetStartParam() (value string, ok bool)
+	GetURL() (value string)
+	GetTitle() (value string)
 	GetMessage() (value string)
 	GetEntities() (value []MessageEntityClass, ok bool)
+	GetPhoto() (value PhotoClass, ok bool)
+	GetMedia() (value MessageMediaClass, ok bool)
+	GetColor() (value PeerColor, ok bool)
+	GetButtonText() (value string)
+	GetSponsorInfo() (value string, ok bool)
+	GetAdditionalInfo() (value string, ok bool)
 }) {
 	s.Recommended = from.GetRecommended()
-	s.ShowPeerPhoto = from.GetShowPeerPhoto()
+	s.CanReport = from.GetCanReport()
 	s.RandomID = from.GetRandomID()
-	if val, ok := from.GetFromID(); ok {
-		s.FromID = val
-	}
-
-	if val, ok := from.GetChatInvite(); ok {
-		s.ChatInvite = val
-	}
-
-	if val, ok := from.GetChatInviteHash(); ok {
-		s.ChatInviteHash = val
-	}
-
-	if val, ok := from.GetChannelPost(); ok {
-		s.ChannelPost = val
-	}
-
-	if val, ok := from.GetStartParam(); ok {
-		s.StartParam = val
-	}
-
+	s.URL = from.GetURL()
+	s.Title = from.GetTitle()
 	s.Message = from.GetMessage()
 	if val, ok := from.GetEntities(); ok {
 		s.Entities = val
+	}
+
+	if val, ok := from.GetPhoto(); ok {
+		s.Photo = val
+	}
+
+	if val, ok := from.GetMedia(); ok {
+		s.Media = val
+	}
+
+	if val, ok := from.GetColor(); ok {
+		s.Color = val
+	}
+
+	s.ButtonText = from.GetButtonText()
+	if val, ok := from.GetSponsorInfo(); ok {
+		s.SponsorInfo = val
+	}
+
+	if val, ok := from.GetAdditionalInfo(); ok {
+		s.AdditionalInfo = val
 	}
 
 }
@@ -214,38 +245,21 @@ func (s *SponsoredMessage) TypeInfo() tdp.Type {
 			Null:       !s.Flags.Has(5),
 		},
 		{
-			Name:       "ShowPeerPhoto",
-			SchemaName: "show_peer_photo",
-			Null:       !s.Flags.Has(6),
+			Name:       "CanReport",
+			SchemaName: "can_report",
+			Null:       !s.Flags.Has(12),
 		},
 		{
 			Name:       "RandomID",
 			SchemaName: "random_id",
 		},
 		{
-			Name:       "FromID",
-			SchemaName: "from_id",
-			Null:       !s.Flags.Has(3),
+			Name:       "URL",
+			SchemaName: "url",
 		},
 		{
-			Name:       "ChatInvite",
-			SchemaName: "chat_invite",
-			Null:       !s.Flags.Has(4),
-		},
-		{
-			Name:       "ChatInviteHash",
-			SchemaName: "chat_invite_hash",
-			Null:       !s.Flags.Has(4),
-		},
-		{
-			Name:       "ChannelPost",
-			SchemaName: "channel_post",
-			Null:       !s.Flags.Has(2),
-		},
-		{
-			Name:       "StartParam",
-			SchemaName: "start_param",
-			Null:       !s.Flags.Has(0),
+			Name:       "Title",
+			SchemaName: "title",
 		},
 		{
 			Name:       "Message",
@@ -256,6 +270,35 @@ func (s *SponsoredMessage) TypeInfo() tdp.Type {
 			SchemaName: "entities",
 			Null:       !s.Flags.Has(1),
 		},
+		{
+			Name:       "Photo",
+			SchemaName: "photo",
+			Null:       !s.Flags.Has(6),
+		},
+		{
+			Name:       "Media",
+			SchemaName: "media",
+			Null:       !s.Flags.Has(14),
+		},
+		{
+			Name:       "Color",
+			SchemaName: "color",
+			Null:       !s.Flags.Has(13),
+		},
+		{
+			Name:       "ButtonText",
+			SchemaName: "button_text",
+		},
+		{
+			Name:       "SponsorInfo",
+			SchemaName: "sponsor_info",
+			Null:       !s.Flags.Has(7),
+		},
+		{
+			Name:       "AdditionalInfo",
+			SchemaName: "additional_info",
+			Null:       !s.Flags.Has(8),
+		},
 	}
 	return typ
 }
@@ -265,33 +308,33 @@ func (s *SponsoredMessage) SetFlags() {
 	if !(s.Recommended == false) {
 		s.Flags.Set(5)
 	}
-	if !(s.ShowPeerPhoto == false) {
-		s.Flags.Set(6)
-	}
-	if !(s.FromID == nil) {
-		s.Flags.Set(3)
-	}
-	if !(s.ChatInvite == nil) {
-		s.Flags.Set(4)
-	}
-	if !(s.ChatInviteHash == "") {
-		s.Flags.Set(4)
-	}
-	if !(s.ChannelPost == 0) {
-		s.Flags.Set(2)
-	}
-	if !(s.StartParam == "") {
-		s.Flags.Set(0)
+	if !(s.CanReport == false) {
+		s.Flags.Set(12)
 	}
 	if !(s.Entities == nil) {
 		s.Flags.Set(1)
+	}
+	if !(s.Photo == nil) {
+		s.Flags.Set(6)
+	}
+	if !(s.Media == nil) {
+		s.Flags.Set(14)
+	}
+	if !(s.Color.Zero()) {
+		s.Flags.Set(13)
+	}
+	if !(s.SponsorInfo == "") {
+		s.Flags.Set(7)
+	}
+	if !(s.AdditionalInfo == "") {
+		s.Flags.Set(8)
 	}
 }
 
 // Encode implements bin.Encoder.
 func (s *SponsoredMessage) Encode(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't encode sponsoredMessage#3a836df8 as nil")
+		return fmt.Errorf("can't encode sponsoredMessage#4d93a990 as nil")
 	}
 	b.PutID(SponsoredMessageTypeID)
 	return s.EncodeBare(b)
@@ -300,49 +343,54 @@ func (s *SponsoredMessage) Encode(b *bin.Buffer) error {
 // EncodeBare implements bin.BareEncoder.
 func (s *SponsoredMessage) EncodeBare(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't encode sponsoredMessage#3a836df8 as nil")
+		return fmt.Errorf("can't encode sponsoredMessage#4d93a990 as nil")
 	}
 	s.SetFlags()
 	if err := s.Flags.Encode(b); err != nil {
-		return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field flags: %w", err)
+		return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field flags: %w", err)
 	}
 	b.PutBytes(s.RandomID)
-	if s.Flags.Has(3) {
-		if s.FromID == nil {
-			return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field from_id is nil")
-		}
-		if err := s.FromID.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field from_id: %w", err)
-		}
-	}
-	if s.Flags.Has(4) {
-		if s.ChatInvite == nil {
-			return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field chat_invite is nil")
-		}
-		if err := s.ChatInvite.Encode(b); err != nil {
-			return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field chat_invite: %w", err)
-		}
-	}
-	if s.Flags.Has(4) {
-		b.PutString(s.ChatInviteHash)
-	}
-	if s.Flags.Has(2) {
-		b.PutInt(s.ChannelPost)
-	}
-	if s.Flags.Has(0) {
-		b.PutString(s.StartParam)
-	}
+	b.PutString(s.URL)
+	b.PutString(s.Title)
 	b.PutString(s.Message)
 	if s.Flags.Has(1) {
 		b.PutVectorHeader(len(s.Entities))
 		for idx, v := range s.Entities {
 			if v == nil {
-				return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field entities element with index %d is nil", idx)
+				return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field entities element with index %d is nil", idx)
 			}
 			if err := v.Encode(b); err != nil {
-				return fmt.Errorf("unable to encode sponsoredMessage#3a836df8: field entities element with index %d: %w", idx, err)
+				return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field entities element with index %d: %w", idx, err)
 			}
 		}
+	}
+	if s.Flags.Has(6) {
+		if s.Photo == nil {
+			return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field photo is nil")
+		}
+		if err := s.Photo.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field photo: %w", err)
+		}
+	}
+	if s.Flags.Has(14) {
+		if s.Media == nil {
+			return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field media is nil")
+		}
+		if err := s.Media.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field media: %w", err)
+		}
+	}
+	if s.Flags.Has(13) {
+		if err := s.Color.Encode(b); err != nil {
+			return fmt.Errorf("unable to encode sponsoredMessage#4d93a990: field color: %w", err)
+		}
+	}
+	b.PutString(s.ButtonText)
+	if s.Flags.Has(7) {
+		b.PutString(s.SponsorInfo)
+	}
+	if s.Flags.Has(8) {
+		b.PutString(s.AdditionalInfo)
 	}
 	return nil
 }
@@ -350,10 +398,10 @@ func (s *SponsoredMessage) EncodeBare(b *bin.Buffer) error {
 // Decode implements bin.Decoder.
 func (s *SponsoredMessage) Decode(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't decode sponsoredMessage#3a836df8 to nil")
+		return fmt.Errorf("can't decode sponsoredMessage#4d93a990 to nil")
 	}
 	if err := b.ConsumeID(SponsoredMessageTypeID); err != nil {
-		return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: %w", err)
+		return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: %w", err)
 	}
 	return s.DecodeBare(b)
 }
@@ -361,68 +409,47 @@ func (s *SponsoredMessage) Decode(b *bin.Buffer) error {
 // DecodeBare implements bin.BareDecoder.
 func (s *SponsoredMessage) DecodeBare(b *bin.Buffer) error {
 	if s == nil {
-		return fmt.Errorf("can't decode sponsoredMessage#3a836df8 to nil")
+		return fmt.Errorf("can't decode sponsoredMessage#4d93a990 to nil")
 	}
 	{
 		if err := s.Flags.Decode(b); err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field flags: %w", err)
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field flags: %w", err)
 		}
 	}
 	s.Recommended = s.Flags.Has(5)
-	s.ShowPeerPhoto = s.Flags.Has(6)
+	s.CanReport = s.Flags.Has(12)
 	{
 		value, err := b.Bytes()
 		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field random_id: %w", err)
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field random_id: %w", err)
 		}
 		s.RandomID = value
-	}
-	if s.Flags.Has(3) {
-		value, err := DecodePeer(b)
-		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field from_id: %w", err)
-		}
-		s.FromID = value
-	}
-	if s.Flags.Has(4) {
-		value, err := DecodeChatInvite(b)
-		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field chat_invite: %w", err)
-		}
-		s.ChatInvite = value
-	}
-	if s.Flags.Has(4) {
-		value, err := b.String()
-		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field chat_invite_hash: %w", err)
-		}
-		s.ChatInviteHash = value
-	}
-	if s.Flags.Has(2) {
-		value, err := b.Int()
-		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field channel_post: %w", err)
-		}
-		s.ChannelPost = value
-	}
-	if s.Flags.Has(0) {
-		value, err := b.String()
-		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field start_param: %w", err)
-		}
-		s.StartParam = value
 	}
 	{
 		value, err := b.String()
 		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field message: %w", err)
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field url: %w", err)
+		}
+		s.URL = value
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field title: %w", err)
+		}
+		s.Title = value
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field message: %w", err)
 		}
 		s.Message = value
 	}
 	if s.Flags.Has(1) {
 		headerLen, err := b.VectorHeader()
 		if err != nil {
-			return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field entities: %w", err)
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field entities: %w", err)
 		}
 
 		if headerLen > 0 {
@@ -431,10 +458,50 @@ func (s *SponsoredMessage) DecodeBare(b *bin.Buffer) error {
 		for idx := 0; idx < headerLen; idx++ {
 			value, err := DecodeMessageEntity(b)
 			if err != nil {
-				return fmt.Errorf("unable to decode sponsoredMessage#3a836df8: field entities: %w", err)
+				return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field entities: %w", err)
 			}
 			s.Entities = append(s.Entities, value)
 		}
+	}
+	if s.Flags.Has(6) {
+		value, err := DecodePhoto(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field photo: %w", err)
+		}
+		s.Photo = value
+	}
+	if s.Flags.Has(14) {
+		value, err := DecodeMessageMedia(b)
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field media: %w", err)
+		}
+		s.Media = value
+	}
+	if s.Flags.Has(13) {
+		if err := s.Color.Decode(b); err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field color: %w", err)
+		}
+	}
+	{
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field button_text: %w", err)
+		}
+		s.ButtonText = value
+	}
+	if s.Flags.Has(7) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field sponsor_info: %w", err)
+		}
+		s.SponsorInfo = value
+	}
+	if s.Flags.Has(8) {
+		value, err := b.String()
+		if err != nil {
+			return fmt.Errorf("unable to decode sponsoredMessage#4d93a990: field additional_info: %w", err)
+		}
+		s.AdditionalInfo = value
 	}
 	return nil
 }
@@ -458,23 +525,23 @@ func (s *SponsoredMessage) GetRecommended() (value bool) {
 	return s.Flags.Has(5)
 }
 
-// SetShowPeerPhoto sets value of ShowPeerPhoto conditional field.
-func (s *SponsoredMessage) SetShowPeerPhoto(value bool) {
+// SetCanReport sets value of CanReport conditional field.
+func (s *SponsoredMessage) SetCanReport(value bool) {
 	if value {
-		s.Flags.Set(6)
-		s.ShowPeerPhoto = true
+		s.Flags.Set(12)
+		s.CanReport = true
 	} else {
-		s.Flags.Unset(6)
-		s.ShowPeerPhoto = false
+		s.Flags.Unset(12)
+		s.CanReport = false
 	}
 }
 
-// GetShowPeerPhoto returns value of ShowPeerPhoto conditional field.
-func (s *SponsoredMessage) GetShowPeerPhoto() (value bool) {
+// GetCanReport returns value of CanReport conditional field.
+func (s *SponsoredMessage) GetCanReport() (value bool) {
 	if s == nil {
 		return
 	}
-	return s.Flags.Has(6)
+	return s.Flags.Has(12)
 }
 
 // GetRandomID returns value of RandomID field.
@@ -485,94 +552,20 @@ func (s *SponsoredMessage) GetRandomID() (value []byte) {
 	return s.RandomID
 }
 
-// SetFromID sets value of FromID conditional field.
-func (s *SponsoredMessage) SetFromID(value PeerClass) {
-	s.Flags.Set(3)
-	s.FromID = value
-}
-
-// GetFromID returns value of FromID conditional field and
-// boolean which is true if field was set.
-func (s *SponsoredMessage) GetFromID() (value PeerClass, ok bool) {
+// GetURL returns value of URL field.
+func (s *SponsoredMessage) GetURL() (value string) {
 	if s == nil {
 		return
 	}
-	if !s.Flags.Has(3) {
-		return value, false
-	}
-	return s.FromID, true
+	return s.URL
 }
 
-// SetChatInvite sets value of ChatInvite conditional field.
-func (s *SponsoredMessage) SetChatInvite(value ChatInviteClass) {
-	s.Flags.Set(4)
-	s.ChatInvite = value
-}
-
-// GetChatInvite returns value of ChatInvite conditional field and
-// boolean which is true if field was set.
-func (s *SponsoredMessage) GetChatInvite() (value ChatInviteClass, ok bool) {
+// GetTitle returns value of Title field.
+func (s *SponsoredMessage) GetTitle() (value string) {
 	if s == nil {
 		return
 	}
-	if !s.Flags.Has(4) {
-		return value, false
-	}
-	return s.ChatInvite, true
-}
-
-// SetChatInviteHash sets value of ChatInviteHash conditional field.
-func (s *SponsoredMessage) SetChatInviteHash(value string) {
-	s.Flags.Set(4)
-	s.ChatInviteHash = value
-}
-
-// GetChatInviteHash returns value of ChatInviteHash conditional field and
-// boolean which is true if field was set.
-func (s *SponsoredMessage) GetChatInviteHash() (value string, ok bool) {
-	if s == nil {
-		return
-	}
-	if !s.Flags.Has(4) {
-		return value, false
-	}
-	return s.ChatInviteHash, true
-}
-
-// SetChannelPost sets value of ChannelPost conditional field.
-func (s *SponsoredMessage) SetChannelPost(value int) {
-	s.Flags.Set(2)
-	s.ChannelPost = value
-}
-
-// GetChannelPost returns value of ChannelPost conditional field and
-// boolean which is true if field was set.
-func (s *SponsoredMessage) GetChannelPost() (value int, ok bool) {
-	if s == nil {
-		return
-	}
-	if !s.Flags.Has(2) {
-		return value, false
-	}
-	return s.ChannelPost, true
-}
-
-// SetStartParam sets value of StartParam conditional field.
-func (s *SponsoredMessage) SetStartParam(value string) {
-	s.Flags.Set(0)
-	s.StartParam = value
-}
-
-// GetStartParam returns value of StartParam conditional field and
-// boolean which is true if field was set.
-func (s *SponsoredMessage) GetStartParam() (value string, ok bool) {
-	if s == nil {
-		return
-	}
-	if !s.Flags.Has(0) {
-		return value, false
-	}
-	return s.StartParam, true
+	return s.Title
 }
 
 // GetMessage returns value of Message field.
@@ -601,10 +594,117 @@ func (s *SponsoredMessage) GetEntities() (value []MessageEntityClass, ok bool) {
 	return s.Entities, true
 }
 
+// SetPhoto sets value of Photo conditional field.
+func (s *SponsoredMessage) SetPhoto(value PhotoClass) {
+	s.Flags.Set(6)
+	s.Photo = value
+}
+
+// GetPhoto returns value of Photo conditional field and
+// boolean which is true if field was set.
+func (s *SponsoredMessage) GetPhoto() (value PhotoClass, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(6) {
+		return value, false
+	}
+	return s.Photo, true
+}
+
+// SetMedia sets value of Media conditional field.
+func (s *SponsoredMessage) SetMedia(value MessageMediaClass) {
+	s.Flags.Set(14)
+	s.Media = value
+}
+
+// GetMedia returns value of Media conditional field and
+// boolean which is true if field was set.
+func (s *SponsoredMessage) GetMedia() (value MessageMediaClass, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(14) {
+		return value, false
+	}
+	return s.Media, true
+}
+
+// SetColor sets value of Color conditional field.
+func (s *SponsoredMessage) SetColor(value PeerColor) {
+	s.Flags.Set(13)
+	s.Color = value
+}
+
+// GetColor returns value of Color conditional field and
+// boolean which is true if field was set.
+func (s *SponsoredMessage) GetColor() (value PeerColor, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(13) {
+		return value, false
+	}
+	return s.Color, true
+}
+
+// GetButtonText returns value of ButtonText field.
+func (s *SponsoredMessage) GetButtonText() (value string) {
+	if s == nil {
+		return
+	}
+	return s.ButtonText
+}
+
+// SetSponsorInfo sets value of SponsorInfo conditional field.
+func (s *SponsoredMessage) SetSponsorInfo(value string) {
+	s.Flags.Set(7)
+	s.SponsorInfo = value
+}
+
+// GetSponsorInfo returns value of SponsorInfo conditional field and
+// boolean which is true if field was set.
+func (s *SponsoredMessage) GetSponsorInfo() (value string, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(7) {
+		return value, false
+	}
+	return s.SponsorInfo, true
+}
+
+// SetAdditionalInfo sets value of AdditionalInfo conditional field.
+func (s *SponsoredMessage) SetAdditionalInfo(value string) {
+	s.Flags.Set(8)
+	s.AdditionalInfo = value
+}
+
+// GetAdditionalInfo returns value of AdditionalInfo conditional field and
+// boolean which is true if field was set.
+func (s *SponsoredMessage) GetAdditionalInfo() (value string, ok bool) {
+	if s == nil {
+		return
+	}
+	if !s.Flags.Has(8) {
+		return value, false
+	}
+	return s.AdditionalInfo, true
+}
+
 // MapEntities returns field Entities wrapped in MessageEntityClassArray helper.
 func (s *SponsoredMessage) MapEntities() (value MessageEntityClassArray, ok bool) {
 	if !s.Flags.Has(1) {
 		return value, false
 	}
 	return MessageEntityClassArray(s.Entities), true
+}
+
+// GetPhotoAsNotEmpty returns mapped value of Photo conditional field and
+// boolean which is true if field was set.
+func (s *SponsoredMessage) GetPhotoAsNotEmpty() (*Photo, bool) {
+	if value, ok := s.GetPhoto(); ok {
+		return value.AsNotEmpty()
+	}
+	return nil, false
 }
